@@ -1,0 +1,19 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=RPG Maker NW.js Automator
+Comment=Automate NW.js implementation for RPG Maker MV/MZ games
+Exec=bash -c 'cd "$(dirname "$0")" && ./run_nwjs_automator.sh'
+Icon=applications-games
+Terminal=true
+Categories=Game;Development;Utility;
+Keywords=RPG;Maker;NW.js;Game;Automation;
+StartupNotify=true
+
+# Additional metadata
+MimeType=application/x-executable;
+Actions=OpenFolder;
+
+[Desktop Action OpenFolder]
+Name=Open Script Folder
+Exec=xdg-open "%SCRIPT_DIR%"
