@@ -412,6 +412,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔄 Version History
 
+### v2.0.1 - Complete Rewrite (Current)
+- 🪳 **Fixed**: Indentation error on line 460-462 (thanks to @T1MM5H for reporting the issue)
+- 🪳 **Fixed**: Os specific scrpits and error handling improved
+
 ### v2.0.0 - Complete Rewrite (Current)
 - ✨ **New**: Completely redesigned interactive experience
 - ✨ **New**: Smart NW.js version presets with compatibility guidance
