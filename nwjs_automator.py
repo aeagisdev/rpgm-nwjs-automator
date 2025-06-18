@@ -421,12 +421,20 @@ class NWJSAutomator:
             </body>
             </html>'''
             
+<<<<<<< HEAD
         try:
                 with open(index_html_path, 'w', encoding='utf-8') as f:
                     f.write(basic_html)
                 logger.info("  Created: basic index.html with detected JS files")
             
         except Exception as e:
+=======
+            try:
+                with open(index_html_path, 'w', encoding='utf-8') as f:
+                    f.write(basic_html)
+                logger.info("  Created: basic index.html with detected JS files")
+            except Exception as e:
+>>>>>>> remote/main
                 logger.error(f"Could not create basic index.html: {e}")
                 raise
 
@@ -453,7 +461,11 @@ class NWJSAutomator:
                 copied_count += 1
                 logger.info(f"  Copied: {item.name}")
 
+<<<<<<< HEAD
             finally: logger.info(f"✓ Copied {copied_count} NW.js runtime files to game directory")
+=======
+        logger.info(f"✓ Copied {copied_count} NW.js runtime files to game directory")
+>>>>>>> remote/main
 
     def rename_executable(self):
         """Rename nw.exe to custom executable name"""
