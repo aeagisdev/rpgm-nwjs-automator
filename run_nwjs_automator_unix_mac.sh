@@ -118,7 +118,7 @@ detect_pip() {
         echo "pip3"
     elif command_exists pip; then
         echo "pip"
-    elif command_exists "$python_cmd" && $python_cmd -m pip --version >/dev/null 2>&1; then
+    elif command_exists "$python_cmd" && "$python_cmd" -m pip --version >/dev/null 2>&1; then
         echo "$python_cmd -m pip"
     else
         echo ""
@@ -175,10 +175,10 @@ create_desktop_shortcut() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS - Create .command file for Finder double-click
         local shortcut_path="$SCRIPT_DIR/NW.js Automator.command"
-        cat > "$shortcut_path" << EOF
+        cat > "$shortcut_path" << 'EOF'
 #!/bin/bash
-cd "$(dirname "\$0")"
-./$SCRIPT_NAME
+cd "$(dirname "$0")"
+./run_nwjs_automator_unix_mac.sh
 EOF
         chmod +x "$shortcut_path"
         echo -e "${GREEN}✓ Created macOS shortcut: ${CYAN}NW.js Automator.command${NC}"
@@ -187,8 +187,10 @@ EOF
     else
         # Linux - Create comprehensive .desktop file
         local desktop_dirs=("$HOME/Desktop" "$HOME/.local/share/applications")
-        local de=$(detect_desktop_environment)
-        local terminal_cmd=$(get_terminal_command "$de")
+        local de
+        de=$(detect_desktop_environment)
+        local terminal_cmd
+        terminal_cmd=$(get_terminal_command "$de")
         
         # Try to create desktop shortcut
         for desktop_dir in "${desktop_dirs[@]}"; do
@@ -203,7 +205,7 @@ Type=Application
 Name=RPG Maker NW.js Automator
 GenericName=Game Runtime Optimizer
 Comment=Automate NW.js implementation for RPG Maker MV/MZ games - Save space and enable developer tools
-Exec=$terminal_cmd bash -c 'cd "'"$SCRIPT_DIR"'" && ./'"'$SCRIPT_NAME'"'; echo; echo "Press Enter to close..."; read'
+Exec=$terminal_cmd bash -c 'cd "$SCRIPT_DIR" && ./"$SCRIPT_NAME"; echo; echo "Press Enter to close..."; read'
 Icon=applications-games
 Path=$SCRIPT_DIR
 Terminal=true
@@ -240,7 +242,7 @@ EOF
 #!/bin/bash
 # Simple launcher that can be executed from anywhere
 cd "$SCRIPT_DIR"
-./$SCRIPT_NAME
+./"$SCRIPT_NAME"
 EOF
         chmod +x "$launcher_path"
         echo -e "${GREEN}✓ Created portable launcher: ${CYAN}nwjs-automator-launcher.sh${NC}"
@@ -315,7 +317,7 @@ main() {
     
     # Check if requests module is installed
     echo -e "${BLUE}Checking required dependencies...${NC}"
-    if ! $PYTHON_CMD -c "import requests" >/dev/null 2>&1; then
+    if ! "$PYTHON_CMD" -c "import requests" >/dev/null 2>&1; then
         echo -e "${YELLOW}Installing required dependencies...${NC}"
         if $PIP_CMD install requests --user; then
             echo -e "${GREEN}✓ Dependencies installed successfully${NC}"
@@ -358,7 +360,7 @@ main() {
     echo
     
     if [[ -f "$SCRIPT_DIR/nwjs_automator.py" ]]; then
-        $PYTHON_CMD "$SCRIPT_DIR/nwjs_automator.py"
+        "$PYTHON_CMD" "$SCRIPT_DIR/nwjs_automator.py"
         exit_code=$?
     else
         echo -e "${RED}✗ ERROR: nwjs_automator.py not found${NC}"

@@ -36,7 +36,7 @@ echo Python found and ready!
 
 REM Check if requests module is installed
 echo Checking dependencies...
-python -c "import requests" >nul 2>&1
+python -c "import requests" 2>nul
 if errorlevel 1 (
     echo Installing required dependencies...
     python -m pip install requests
@@ -61,9 +61,14 @@ if errorlevel 1 (
 
 REM Change to script directory
 cd /d "%~dp0"
-if errorlevel 1 (
-    echo ERROR: Could not change to script directory
-    echo Please ensure the script is in a valid directory
+
+REM Check if nwjs_automator.py exists
+if not exist "nwjs_automator.py" (
+    echo.
+    echo ERROR: nwjs_automator.py not found in current directory
+    echo Please ensure all script files are in the same folder
+    echo Current directory: %CD%
+    echo.
     pause
     exit /b 1
 )
@@ -73,14 +78,14 @@ echo Starting NW.js Automator...
 echo.
 
 REM Run the Python script
-python nwjs_automator.py
+python "nwjs_automator.py"
 set PYTHON_EXIT_CODE=%errorlevel%
 
 echo.
 if %PYTHON_EXIT_CODE% equ 0 (
     echo Script completed successfully!
 ) else (
-    echo Script encountered an error (exit code: %PYTHON_EXIT_CODE%)
+    echo Script encountered an error ^(exit code: %PYTHON_EXIT_CODE%^)
     echo Check the output above for details.
 )
 

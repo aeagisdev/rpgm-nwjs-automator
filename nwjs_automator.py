@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""
-RPG Maker MV NW.js Automation Script
-Automates the process of updating RPG Maker MV's NW.js runtime
-
-Copyright (c) 2025 Andrea Giuseppe Santagati
-Licensed under the MIT License - see LICENSE file for details
-https://github.com/aeagisdev/rpgm-nwjs-automator
-"""
+#
+#   RPG Maker MV NW.js Automation Script
+#   Automates the process of updating RPG Maker MV's NW.js runtime
+#
+#   Copyright (c) 2025 Andrea Giuseppe Santagati
+#   Licensed under the MIT License - see LICENSE file for details
+#   https://github.com/aeagisdev/rpgm-nwjs-automator
+#
 
 import os
 import sys
@@ -30,11 +30,13 @@ if sys.platform == 'win32':
         WIN32_AVAILABLE = True
     except ImportError:
         WIN32_AVAILABLE = False
-        logging.warning("win32com not available. Shortcut creation will be limited.")
+        logging.warning(
+            "win32com not available. Shortcut creation will be limited.")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
+
 
 class NWJSAutomator:
     def __init__(self, game_path, nwjs_path=None, nwjs_version="v0.49.2", use_sdk=True, executable_name="Game"):
@@ -44,40 +46,40 @@ class NWJSAutomator:
         self.use_sdk = use_sdk
         self.executable_name = executable_name
         self.nwjs_url_base = "https://dl.nwjs.io"
-        
+
         # Files/folders to keep from original game - UPDATED to include index.html
         self.keep_files = ['package.json', 'www', 'index.html']
-        
+
         # Files to remove after copying NW.js
         self.cleanup_files = [
-        # Development and debugging tools
-        'chromedriver',
-        'chromedriver.exe',
-        'nw_100_percent.pak',
-        'nw_200_percent.pak',
-        
-        # Documentation and credits
-        'ACKNOWLEDGEMENTS',
-        'AUTHORS',
-        'CHANGELOG.md',
-        'LICENSE',
-        'README.md',
-        'credits.html',
-        
-        # Development versions and SDK-specific files (if not needed)
-        'payload',
-        'debug.log',
-        'pnacl',
-        
-        # Locale files (keep only essential ones)
-        # Note: We'll handle locales directory separately to keep only en-US
-        
-        # Other optional files
-        'notification_helper.exe',  # Windows notification helper
-        'chrome_100_percent.pak',
-        'chrome_200_percent.pak'
-    ]
-    
+            # Development and debugging tools
+            'chromedriver',
+            'chromedriver.exe',
+            'nw_100_percent.pak',
+            'nw_200_percent.pak',
+
+            # Documentation and credits
+            'ACKNOWLEDGEMENTS',
+            'AUTHORS',
+            'CHANGELOG.md',
+            'LICENSE',
+            'README.md',
+            'credits.html',
+
+            # Development versions and SDK-specific files (if not needed)
+            'payload',
+            'debug.log',
+            'pnacl',
+
+            # Locale files (keep only essential ones)
+            # Note: We'll handle locales directory separately to keep only en-US
+
+            # Other optional files
+            'notification_helper.exe',  # Windows notification helper
+            'chrome_100_percent.pak',
+            'chrome_200_percent.pak'
+        ]
+
     def validate_game_directory(self):
         """Validate that the provided path is a valid RPG Maker MV game directory"""
         if not self.game_path.exists():
@@ -134,7 +136,7 @@ class NWJSAutomator:
             except Exception as e:
                 logger.error(f"Could not save package.json fixes: {e}")
                 raise
-    
+
     def get_nwjs_download_url(self):
         """Get the download URL for the specified NW.js version"""
         arch_map = {
@@ -144,51 +146,52 @@ class NWJSAutomator:
             'i386': 'ia32',
             'x86': 'ia32'
         }
-        
+
         arch = arch_map.get(platform.machine(), 'x64')
-        
+
         # Map platform names
         platform_map = {
             'win32': 'win',
             'darwin': 'osx',
             'linux': 'linux'
         }
-        
+
         platform_name = platform_map.get(sys.platform, 'win')
-        
+
         # Use the version specified, defaulting to v0.49.2
-        version = self.nwjs_version if self.nwjs_version.startswith('v') else f"v{self.nwjs_version}"
-        
+        version = self.nwjs_version if self.nwjs_version.startswith(
+            'v') else f"v{self.nwjs_version}"
+
         if self.use_sdk:
             filename = f"nwjs-sdk-{version}-{platform_name}-{arch}"
         else:
             filename = f"nwjs-{version}-{platform_name}-{arch}"
-        
+
         if platform_name == 'win':
             filename += '.zip'
         else:
             filename += '.tar.gz'
-        
+
         return f"{self.nwjs_url_base}/{version}/{filename}", filename
 
     def download_nwjs(self, output_dir):
         """Download NW.js if not already provided"""
         url, filename = self.get_nwjs_download_url()
         output_path = Path(output_dir) / filename
-        
+
         logger.info(f"Downloading NW.js from: {url}")
-        
+
         try:
             response = requests.get(url, stream=True)
             response.raise_for_status()
-            
+
             with open(output_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
-            
+
             logger.info(f"✓ Downloaded: {output_path}")
             return output_path
-            
+
         except requests.RequestException as e:
             logger.error(f"Failed to download NW.js: {e}")
             raise
@@ -196,30 +199,30 @@ class NWJSAutomator:
     def extract_nwjs(self, archive_path, extract_dir):
         """Extract NW.js archive"""
         logger.info(f"Extracting NW.js archive: {archive_path}")
-        
+
         if archive_path.suffix == '.zip':
             with zipfile.ZipFile(archive_path, 'r') as zip_ref:
                 zip_ref.extractall(extract_dir)
         elif archive_path.suffix == '.gz':
             with tarfile.open(archive_path, 'r:gz') as tar_ref:
                 tar_ref.extractall(extract_dir)
-        
+
         # Find the extracted NW.js directory
         for item in Path(extract_dir).iterdir():
             if item.is_dir() and 'nwjs' in item.name.lower():
                 logger.info(f"✓ NW.js extracted to: {item}")
                 return item
-        
+
         raise FileNotFoundError("Could not find extracted NW.js directory")
 
     def backup_game(self):
         """Create a backup of the original game"""
         backup_path = self.game_path.parent / f"{self.game_path.name}_backup"
-        
+
         if backup_path.exists():
             logger.info(f"Backup already exists: {backup_path}")
             return backup_path
-        
+
         logger.info(f"Creating backup: {backup_path}")
         shutil.copytree(self.game_path, backup_path)
         logger.info("✓ Backup created successfully")
@@ -227,7 +230,8 @@ class NWJSAutomator:
 
     def save_important_files(self):
         """Save package.json, www folder, and index.html before cleaning"""
-        logger.info("Saving important files (package.json, www folder, and index.html)...")
+        logger.info(
+            "Saving important files (package.json, www folder, and index.html)...")
 
         temp_dir = self.game_path.parent / f"temp_{self.game_path.name}_files"
         temp_dir.mkdir(exist_ok=True)
@@ -249,20 +253,22 @@ class NWJSAutomator:
         # Save index.html (CRITICAL for NW.js to work) - FIXED PATH
         index_html = self.game_path / 'index.html'
         if index_html.exists():
-            shutil.copy2(index_html, temp_dir / 'index.html')  # Changed from 'www/index.html' to 'index.html'
+            # Changed from 'www/index.html' to 'index.html'
+            shutil.copy2(index_html, temp_dir / 'index.html')
             logger.info("  Saved: index.html")
         else:
             logger.warning("  index.html not found - this may cause issues!")
 
-        
         for file in critical_files:
             if not (temp_dir / file).exists():
                 missing_files.append(file)
-            
+
         if missing_files:
-            logger.error(f"Critical files not saved to temp directory: {missing_files}")
+            logger.error(
+                f"Critical files not saved to temp directory: {missing_files}")
             logger.error("Aborting to prevent data loss!")
-            raise FileNotFoundError(f"Failed to backup critical files: {missing_files}")
+            raise FileNotFoundError(
+                f"Failed to backup critical files: {missing_files}")
 
         logger.info(f"✓ Important files saved to: {temp_dir}")
         return temp_dir
@@ -270,9 +276,9 @@ class NWJSAutomator:
     def clean_game_directory(self):
         """Delete everything inside game folder except what we saved"""
         logger.info("Cleaning game directory (deleting everything)...")
-        
+
         removed_count = 0
-        
+
         for item in self.game_path.iterdir():
             try:
                 if item.is_dir():
@@ -283,7 +289,7 @@ class NWJSAutomator:
                 logger.info(f"  Removed: {item.name}")
             except Exception as e:
                 logger.warning(f"  Could not remove {item.name}: {e}")
-        
+
         logger.info(f"✓ Removed {removed_count} items from game directory")
 
     def restore_important_files(self, temp_dir):
@@ -339,7 +345,7 @@ class NWJSAutomator:
             logger.info("✓ Cleaned up temporary files")
         except Exception as e:
             logger.warning(f"Could not clean up temp directory: {e}")
-    
+
     def create_basic_index_html(self):
         """Create a basic index.html file if missing"""
         index_html_path = self.game_path / "index.html"
@@ -420,19 +426,19 @@ class NWJSAutomator:
             {chr(10).join(script_tags)}
             </body>
             </html>'''
-            
-            try:
-                with open(index_html_path, 'w', encoding='utf-8') as f:
-                    f.write(basic_html)
-                logger.info("  Created: basic index.html with detected JS files")
-            except Exception as e:
-                logger.error(f"Could not create basic index.html: {e}")
-                raise
 
-    
+        try:
+            with open(index_html_path, 'w', encoding='utf-8') as f:
+                f.write(basic_html)
+            logger.info("  Created: basic index.html with detected JS files")
+        except Exception as e:
+            logger.error(f"Could not create basic index.html: {e}")
+            raise
+
     def copy_nwjs_to_game(self, nwjs_dir):
         """Copy NW.js runtime files to the game directory"""
-        logger.info(f"Copying NW.js runtime files from {nwjs_dir} to {self.game_path}...")
+        logger.info(
+            f"Copying NW.js runtime files from {nwjs_dir} to {self.game_path}...")
         copied_count = 0
 
         # Copy all NW.js files to the game directory
@@ -444,15 +450,16 @@ class NWJSAutomator:
                     shutil.copytree(item, dest_path, dirs_exist_ok=True)
                 else:
                     shutil.copy2(item, dest_path)
-                    
+
                     # Fix permissions for executable files on Unix systems
                     if sys.platform != 'win32' and item.name in ['nw', 'nwjs']:
                         dest_path.chmod(0o755)
 
                 copied_count += 1
                 logger.info(f"  Copied: {item.name}")
-
-        logger.info(f"✓ Copied {copied_count} NW.js runtime files to game directory")
+            finally:
+                logger.info(
+                    f"✓ Copied {copied_count} NW.js runtime files to game directory")
 
     def rename_executable(self):
         """Rename nw.exe to custom executable name"""
@@ -478,9 +485,10 @@ class NWJSAutomator:
             if potential_exe.exists():
                 nw_exe = potential_exe
                 break
-            
+
         if not nw_exe:
-            logger.error(f"NW.js executable not found. Looked for: {possible_executables}")
+            logger.error(
+                f"NW.js executable not found. Looked for: {possible_executables}")
             return None
 
         game_exe = self.game_path / game_exe_name
@@ -529,7 +537,8 @@ class NWJSAutomator:
                         if locale_file.is_file():
                             locale_file.unlink()
                             removed_count += 1
-                            logger.info(f"  Removed: locales/{locale_file.name}")
+                            logger.info(
+                                f"  Removed: locales/{locale_file.name}")
             except Exception as e:
                 logger.warning(f"  Could not clean locales directory: {e}")
 
@@ -555,8 +564,6 @@ class NWJSAutomator:
             logger.error(f"Failed to setup NW.js: {e}")
             raise
 
-
-
     def cleanup_temp_files(self):
         """Clean up temporary files"""
         temp_dir = Path.cwd() / 'temp_nwjs'
@@ -571,10 +578,10 @@ class NWJSAutomator:
         """Create a Windows shortcut (optional enhancement)"""
         if not WIN32_AVAILABLE:
             return None
-        
+
         game_name = self.executable_name
         shortcut_path = self.game_path / f"{game_name}.lnk"
-        
+
         try:
             pythoncom.CoInitialize()
             shell = win32com.client.Dispatch("WScript.Shell")
@@ -585,7 +592,7 @@ class NWJSAutomator:
             shortcut.Save()
             logger.info(f"✓ Created Windows shortcut: {shortcut_path}")
             return shortcut_path
-            
+
         except Exception as e:
             logger.warning(f"Could not create Windows shortcut: {e}")
             return None
@@ -594,56 +601,57 @@ class NWJSAutomator:
 
     def process_game(self, create_backup=True):
         logger.info(f"Starting NW.js update for: {self.game_path}")
-        
+
         try:
             # Step 0: Validate game directory
             self.validate_game_directory()
-            
+
             # Step 0.5: Create backup if requested
             if create_backup:
                 self.backup_game()
-            
+
             # Step 1: Setup NW.js (download SDK build)
             nwjs_dir = self.setup_nwjs()
-            
+
             # Step 3a: Save package.json, www folder, and index.html
             temp_dir = self.save_important_files()
-                        
+
             # Step 3b: Delete everything inside game folder
             self.clean_game_directory()
-            
+
             # Step 3b: Copy NW.js files to game directory
             self.copy_nwjs_to_game(nwjs_dir)
-            
+
             # Step 3c: Restore package.json, www folder, and index.html
             self.restore_important_files(temp_dir)
-            
+
             # Step 3c: Rename nw.exe to custom executable name
             game_exe = self.rename_executable()
-            
+
             # Step 3d: Delete chromedriver (and other cleanup)
             self.cleanup_nwjs_files()
-            
+
             if not game_exe:
                 raise FileNotFoundError("Could not create game executable")
-            
+
             # Optional: Create shortcut on Windows
             if sys.platform == 'win32':
                 self.create_shortcut_windows(game_exe)
-            
+
             # Cleanup temporary files
             self.cleanup_temp_files()
-            
+
             logger.info("🎉 NW.js update completed successfully!")
             logger.info(f"🚀 Launch the game using: {game_exe}")
-            logger.info("💡 Type 'process.versions' in the game console to check your new NW.js version!")
-            
+            logger.info(
+                "💡 Type 'process.versions' in the game console to check your new NW.js version!")
+
             return {
                 'success': True,
                 'game_executable': game_exe,
                 'game_path': self.game_path
             }
-            
+
         except Exception as e:
             logger.error(f"❌ Update failed: {e}")
             return {
@@ -651,14 +659,16 @@ class NWJSAutomator:
                 'error': str(e)
             }
 
+
 def get_user_input():
     """Get user input for configuration options"""
     print("🎮 RPG Maker MV NW.js Update Automation Tool")
     print("=" * 80)
-    
+
     # Get game path
     while True:
-        game_path = input("\n📁 Enter the path to your RPG Maker MV game directory: ").strip()
+        game_path = input(
+            "\n📁 Enter the path to your RPG Maker MV game directory: ").strip()
         if game_path:
             game_path = game_path.strip('"\'')  # Remove quotes if present
             if Path(game_path).exists():
@@ -667,30 +677,33 @@ def get_user_input():
                 print("❌ Directory not found. Please enter a valid path.")
         else:
             print("❌ Please enter a valid path.")
-    
+
     # Get custom executable name
     print("\n🎯 Executable Name:")
-    executable_name = input("Enter the name for your game executable (default: Game): ").strip()
+    executable_name = input(
+        "Enter the name for your game executable (default: Game): ").strip()
     if not executable_name:
         executable_name = "Game"
     # Remove .exe extension if provided (will be added automatically on Windows)
     if executable_name.lower().endswith('.exe'):
         executable_name = executable_name[:-4]
-    
+
     # Get NW.js path (optional)
-    nwjs_path = input("\n⚙️  Enter path to existing NW.js installation (press Enter to download): ").strip()
+    nwjs_path = input(
+        "\n⚙️  Enter path to existing NW.js installation (press Enter to download): ").strip()
     nwjs_path = nwjs_path.strip('"\'') if nwjs_path else None
-    
+
     # Get NW.js version
     print("\n🔧 NW.js Version Options:")
     print("  1. v0.29.4 (Maximum compatibility - original RPG Maker MV era)")
-    print("  2. v0.49.2 (Balanced - good performance with broad compatibility)")  
+    print("  2. v0.49.2 (Balanced - good performance with broad compatibility)")
     print("  3. v0.72.0 (Modern stable - last version supporting Windows 7)")
     print("  4. v0.90.0+ (Latest stable - best performance, requires Windows 10+)")
     print("  5. Custom version")
 
     while True:
-        version_choice = input("\nSelect version (1-5) or press Enter for balanced default: ").strip()
+        version_choice = input(
+            "\nSelect version (1-5) or press Enter for balanced default: ").strip()
         if not version_choice or version_choice == "2":
             nwjs_version = "v0.49.2"  # Keep as balanced default
             break
@@ -704,24 +717,27 @@ def get_user_input():
             nwjs_version = "v0.90.0"
             break
         elif version_choice == "5":
-            custom_version = input("Enter custom version (e.g., v0.100.1): ").strip()
+            custom_version = input(
+                "Enter custom version (e.g., v0.100.1): ").strip()
             if custom_version:
-                nwjs_version = custom_version if custom_version.startswith('v') else f'v{custom_version}'
+                nwjs_version = custom_version if custom_version.startswith(
+                    'v') else f'v{custom_version}'
                 break
         print("❌ Invalid choice. Please select 1, 2, 3, 4, 5, or press Enter.")
-    
+
     # Get build type
     use_sdk = input("\n🛠️  Use SDK build? (Y/n): ").strip().lower()
     use_sdk = use_sdk != 'n'
-    
+
     # Get backup preference
-    create_backup = input("\n💾 Create backup before processing? (Y/n): ").strip().lower()
+    create_backup = input(
+        "\n💾 Create backup before processing? (Y/n): ").strip().lower()
     create_backup = create_backup != 'n'
-    
+
     # Verbose logging
     verbose = input("\n📝 Enable verbose logging? (y/N): ").strip().lower()
     verbose = verbose == 'y'
-    
+
     return {
         'game_path': game_path,
         'executable_name': executable_name,
@@ -732,26 +748,36 @@ def get_user_input():
         'verbose': verbose
     }
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Automate NW.js update for RPG Maker MV games')
-    parser.add_argument('--game-path', help='Path to the RPG Maker MV game directory')
-    parser.add_argument('--executable-name', default='Game', help='Name for the game executable (default: Game)')
-    parser.add_argument('--nwjs-path', help='Path to existing NW.js installation (optional)')
-    parser.add_argument('--nwjs-version', default='v0.49.2', help='NW.js version to download (default: v0.49.2)')
-    parser.add_argument('--no-sdk', action='store_true', help='Use normal build instead of SDK build')
-    parser.add_argument('--no-backup', action='store_true', help='Skip creating backup')
-    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose logging')
-    parser.add_argument('--interactive', '-i', action='store_true', help='Run in interactive mode')
-    
+    parser = argparse.ArgumentParser(
+        description='Automate NW.js update for RPG Maker MV games')
+    parser.add_argument(
+        '--game-path', help='Path to the RPG Maker MV game directory')
+    parser.add_argument('--executable-name', default='Game',
+                        help='Name for the game executable (default: Game)')
+    parser.add_argument(
+        '--nwjs-path', help='Path to existing NW.js installation (optional)')
+    parser.add_argument('--nwjs-version', default='v0.49.2',
+                        help='NW.js version to download (default: v0.49.2)')
+    parser.add_argument('--no-sdk', action='store_true',
+                        help='Use normal build instead of SDK build')
+    parser.add_argument('--no-backup', action='store_true',
+                        help='Skip creating backup')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='Enable verbose logging')
+    parser.add_argument('--interactive', '-i',
+                        action='store_true', help='Run in interactive mode')
+
     args = parser.parse_args()
-    
+
     # If no game path provided or interactive mode requested, use interactive input
     if not args.game_path or args.interactive:
         config = get_user_input()
-        
+
         if config['verbose']:
             logging.getLogger().setLevel(logging.DEBUG)
-        
+
         # Create automator instance
         automator = NWJSAutomator(
             game_path=config['game_path'],
@@ -760,34 +786,36 @@ def main():
             use_sdk=config['use_sdk'],
             executable_name=config['executable_name']
         )
-        
+
         # Show configuration summary
         print(f"\n📋 Configuration Summary:")
         print(f"   Game Path: {config['game_path']}")
         print(f"   Executable Name: {config['executable_name']}")
         print(f"   NW.js Version: {config['nwjs_version']}")
         print(f"   Build Type: {'SDK' if config['use_sdk'] else 'Normal'}")
-        print(f"   Create Backup: {'Yes' if config['create_backup'] else 'No'}")
+        print(
+            f"   Create Backup: {'Yes' if config['create_backup'] else 'No'}")
         if config['nwjs_path']:
             print(f"   NW.js Path: {config['nwjs_path']}")
-        
-        confirm = input(f"\n🚀 Proceed with automation? (Y/n): ").strip().lower()
+
+        confirm = input(
+            f"\n🚀 Proceed with automation? (Y/n): ").strip().lower()
         if confirm == 'n':
             print("❌ Operation cancelled by user.")
             sys.exit(0)
-        
+
         # Process the game
         result = automator.process_game(create_backup=config['create_backup'])
     else:
         # Use command line arguments
         if args.verbose:
             logging.getLogger().setLevel(logging.DEBUG)
-        
+
         # Clean executable name (remove .exe if provided)
         executable_name = args.executable_name
         if executable_name.lower().endswith('.exe'):
             executable_name = executable_name[:-4]
-        
+
         # Create automator instance
         automator = NWJSAutomator(
             game_path=args.game_path,
@@ -796,20 +824,22 @@ def main():
             use_sdk=not args.no_sdk,
             executable_name=executable_name
         )
-        
+
         # Process the game
         result = automator.process_game(create_backup=not args.no_backup)
-    
+
     if result['success']:
         print(f"\n✅ Success! Game processed successfully.")
         print(f"📁 Game directory: {result['game_path']}")
         print(f"🚀 Game executable: {result['game_executable']}")
         print(f"\n🎮 You can now launch your game using your custom executable!")
-        print(f"💡 Type 'process.versions' in the game console to verify your NW.js version!")
-        
+        print(
+            f"💡 Type 'process.versions' in the game console to verify your NW.js version!")
+
     else:
         print(f"\n❌ Failed: {result['error']}")
         sys.exit(1)
+
 
 if __name__ == '__main__':
     main()
