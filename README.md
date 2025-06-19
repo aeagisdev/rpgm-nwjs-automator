@@ -53,15 +53,12 @@ This script transforms your RPG Maker games by replacing their outdated runtime 
 - ✅ Launch the automation tool
 - ✅ Keep the terminal open to show results
 
-### Method 2: Interactive Mode (Recommended)
-```bash
-python nwjs_automator.py
-```
+### Method 2: Command Line (For Advanced Users)
+
 The script will guide you through everything with a user-friendly interface!
 
-### Method 2: Command Line (For Advanced Users)
 ```bash
-python nwjs_automator.py --game-path "C:\Path\To\Your\Game"
+python nwjs_automator.py
 ```
 
 ## 📋 Requirements
