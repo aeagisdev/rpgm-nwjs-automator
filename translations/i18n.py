@@ -9,12 +9,16 @@ Provides locale detection, fallback, and translation loading.
 import json
 import locale
 import logging
+import sys
 from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-TRANSLATIONS_DIR = Path(__file__).parent
+if getattr(sys, 'frozen', False):
+    TRANSLATIONS_DIR = Path(sys._MEIPASS) / 'translations'
+else:
+    TRANSLATIONS_DIR = Path(__file__).parent
 SUPPORTED_LOCALES = {
     "en": "English",
     "ja": "Japanese",
