@@ -40,7 +40,8 @@ logger = logging.getLogger(__name__)
 
 class NWJSAutomator:
     def __init__(self, game_path, nwjs_path=None, nwjs_version="v0.49.2", use_sdk=True, executable_name="Game", 
-                 enable_devtools=False, platform_optimized=False, logging_level="INFO"):
+                 enable_devtools=False, platform_optimized=False, logging_level="INFO", 
+                 config_profile=None, config_template=None):
         self.game_path = Path(game_path)
         self.nwjs_path = Path(nwjs_path) if nwjs_path else None
         self.nwjs_version = nwjs_version
@@ -49,6 +50,8 @@ class NWJSAutomator:
         self.enable_devtools = enable_devtools
         self.platform_optimized = platform_optimized
         self.nwjs_url_base = "https://dl.nwjs.io"
+        self.config_profile = config_profile
+        self.config_template = config_template
         
         # Configure logging based on user preference
         self.configure_logging(logging_level)
@@ -56,6 +59,14 @@ class NWJSAutomator:
         # Platform detection
         self.current_platform = platform.system().lower()
         self.platform_info = self.detect_platform_info()
+        
+        # Load configuration profile if specified
+        self.config_profiles = self.load_config_profiles()
+        self.current_config = self.load_profile_config(config_profile)
+        
+        # Load configuration template if specified
+        self.template_configs = self.load_template_configs()
+        self.applied_template = self.apply_config_template(config_template)
         
         # SDK version compatibility database
         self.sdk_compatibility = {
@@ -156,6 +167,440 @@ class NWJSAutomator:
             logger.warning("RotatingFileHandler not available, file logging disabled")
         except Exception as e:
             logger.warning(f"Could not configure file logging: {e}")
+
+    def load_config_profiles(self):
+        """Load predefined configuration profiles"""
+        profiles = {
+            'default': {
+                'name': 'Default Configuration',
+                'description': 'Balanced settings for most RPG Maker MV games',
+                'settings': {
+                    'nwjs_version': 'v0.49.2',
+                    'use_sdk': True,
+                    'enable_devtools': False,
+                    'platform_optimized': True,
+                    'cleanup_files': self.cleanup_files.copy(),
+                    'keep_locales': ['en-US.pak', 'en-US.pak.info']
+                }
+            },
+            'development': {
+                'name': 'Development Mode',
+                'description': 'Settings optimized for game development and debugging',
+                'settings': {
+                    'nwjs_version': 'v0.72.0',
+                    'use_sdk': True,
+                    'enable_devtools': True,
+                    'platform_optimized': True,
+                    'cleanup_files': [f for f in self.cleanup_files if f not in self.debug_files],
+                    'keep_locales': ['en-US.pak', 'en-US.pak.info']
+                }
+            },
+            'production': {
+                'name': 'Production Mode',
+                'description': 'Settings optimized for final game distribution',
+                'settings': {
+                    'nwjs_version': 'v0.49.2',
+                    'use_sdk': False,
+                    'enable_devtools': False,
+                    'platform_optimized': True,
+                    'cleanup_files': self.cleanup_files.copy(),
+                    'keep_locales': ['en-US.pak', 'en-US.pak.info']
+                }
+            },
+            'compatibility': {
+                'name': 'Compatibility Mode',
+                'description': 'Settings for maximum compatibility with older games',
+                'settings': {
+                    'nwjs_version': 'v0.29.4',
+                    'use_sdk': True,
+                    'enable_devtools': False,
+                    'platform_optimized': False,
+                    'cleanup_files': self.cleanup_files.copy(),
+                    'keep_locales': ['en-US.pak', 'en-US.pak.info']
+                }
+            },
+            'modern': {
+                'name': 'Modern Mode',
+                'description': 'Settings for modern NW.js features (Windows 10+ required)',
+                'settings': {
+                    'nwjs_version': 'v0.90.0',
+                    'use_sdk': True,
+                    'enable_devtools': True,
+                    'platform_optimized': True,
+                    'cleanup_files': self.cleanup_files.copy(),
+                    'keep_locales': ['en-US.pak', 'en-US.pak.info']
+                }
+            }
+        }
+        
+        logger.info(f"Loaded {len(profiles)} configuration profiles")
+        return profiles
+
+    def load_profile_config(self, profile_name):
+        """Load configuration from a profile"""
+        if not profile_name or profile_name not in self.config_profiles:
+            logger.info("Using default configuration")
+            return None
+        
+        profile = self.config_profiles[profile_name]
+        logger.info(f"Applying configuration profile: {profile['name']}")
+        logger.info(f"Description: {profile['description']}")
+        
+        # Apply profile settings
+        profile_settings = profile['settings']
+        
+        # Update instance variables based on profile
+        if 'nwjs_version' in profile_settings:
+            self.nwjs_version = profile_settings['nwjs_version']
+        if 'use_sdk' in profile_settings:
+            self.use_sdk = profile_settings['use_sdk']
+        if 'enable_devtools' in profile_settings:
+            self.enable_devtools = profile_settings['enable_devtools']
+        if 'platform_optimized' in profile_settings:
+            self.platform_optimized = profile_settings['platform_optimized']
+        if 'cleanup_files' in profile_settings:
+            self.cleanup_files = profile_settings['cleanup_files']
+        if 'keep_locales' in profile_settings:
+            self.keep_locales = profile_settings['keep_locales']
+        
+        logger.info(f"✓ Configuration profile '{profile_name}' applied successfully")
+        return profile
+
+    def load_template_configs(self):
+        """Load predefined configuration templates"""
+        templates = {
+            'minimal': {
+                'name': 'Minimal Configuration',
+                'description': 'Template for smallest possible game size',
+                'settings': {
+                    'use_sdk': False,
+                    'enable_devtools': False,
+                    'cleanup_files': self.cleanup_files + self.debug_files,
+                    'keep_locales': ['en-US.pak', 'en-US.pak.info']
+                }
+            },
+            'debug': {
+                'name': 'Debug Configuration',
+                'description': 'Template for development with full debugging support',
+                'settings': {
+                    'use_sdk': True,
+                    'enable_devtools': True,
+                    'cleanup_files': [f for f in self.cleanup_files if f not in self.debug_files],
+                    'keep_locales': ['en-US.pak', 'en-US.pak.info']
+                }
+            },
+            'multilingual': {
+                'name': 'Multilingual Configuration',
+                'description': 'Template that preserves multiple language files',
+                'settings': {
+                    'use_sdk': True,
+                    'enable_devtools': False,
+                    'cleanup_files': self.cleanup_files.copy(),
+                    'keep_locales': ['en-US.pak', 'en-US.pak.info', 'ja.pak', 'ja.pak.info']
+                }
+            }
+        }
+        
+        logger.info(f"Loaded {len(templates)} configuration templates")
+        return templates
+
+    def apply_config_template(self, template_name):
+        """Apply a configuration template"""
+        if not template_name or template_name not in self.template_configs:
+            logger.info("No configuration template applied")
+            return None
+        
+        template = self.template_configs[template_name]
+        logger.info(f"Applying configuration template: {template['name']}")
+        logger.info(f"Description: {template['description']}")
+        
+        # Apply template settings
+        template_settings = template['settings']
+        
+        # Update instance variables based on template
+        if 'use_sdk' in template_settings:
+            self.use_sdk = template_settings['use_sdk']
+        if 'enable_devtools' in template_settings:
+            self.enable_devtools = template_settings['enable_devtools']
+        if 'cleanup_files' in template_settings:
+            self.cleanup_files = template_settings['cleanup_files']
+        if 'keep_locales' in template_settings:
+            self.keep_locales = template_settings['keep_locales']
+        
+        logger.info(f"✓ Configuration template '{template_name}' applied successfully")
+        return template
+
+    def save_config_profile(self, profile_name, config_data):
+        """Save a custom configuration profile"""
+        if not profile_name:
+            logger.error("Profile name cannot be empty")
+            return False
+        
+        # Create profiles directory if it doesn't exist
+        profiles_dir = Path.cwd() / 'config_profiles'
+        profiles_dir.mkdir(exist_ok=True)
+        
+        profile_file = profiles_dir / f"{profile_name}.json"
+        
+        try:
+            # Merge with current settings
+            full_config = {
+                'name': config_data.get('name', profile_name),
+                'description': config_data.get('description', 'Custom configuration profile'),
+                'settings': {
+                    'nwjs_version': config_data.get('nwjs_version', self.nwjs_version),
+                    'use_sdk': config_data.get('use_sdk', self.use_sdk),
+                    'enable_devtools': config_data.get('enable_devtools', self.enable_devtools),
+                    'platform_optimized': config_data.get('platform_optimized', self.platform_optimized),
+                    'cleanup_files': config_data.get('cleanup_files', self.cleanup_files),
+                    'keep_locales': config_data.get('keep_locales', self.keep_locales)
+                }
+            }
+            
+            with open(profile_file, 'w', encoding='utf-8') as f:
+                json.dump(full_config, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"✓ Configuration profile saved: {profile_file}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to save configuration profile: {e}")
+            return False
+
+    def export_config(self, output_path):
+        """Export current configuration to a file"""
+        try:
+            config_data = {
+                'nwjs_version': self.nwjs_version,
+                'use_sdk': self.use_sdk,
+                'enable_devtools': self.enable_devtools,
+                'platform_optimized': self.platform_optimized,
+                'executable_name': self.executable_name,
+                'cleanup_files': self.cleanup_files,
+                'keep_locales': self.keep_locales,
+                'platform_info': self.platform_info
+            }
+            
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(config_data, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"✓ Configuration exported to: {output_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to export configuration: {e}")
+            return False
+
+    def import_config(self, input_path):
+        """Import configuration from a file"""
+        try:
+            with open(input_path, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+            
+            # Apply imported configuration
+            if 'nwjs_version' in config_data:
+                self.nwjs_version = config_data['nwjs_version']
+            if 'use_sdk' in config_data:
+                self.use_sdk = config_data['use_sdk']
+            if 'enable_devtools' in config_data:
+                self.enable_devtools = config_data['enable_devtools']
+            if 'platform_optimized' in config_data:
+                self.platform_optimized = config_data['platform_optimized']
+            if 'executable_name' in config_data:
+                self.executable_name = config_data['executable_name']
+            if 'cleanup_files' in config_data:
+                self.cleanup_files = config_data['cleanup_files']
+            if 'keep_locales' in config_data:
+                self.keep_locales = config_data['keep_locales']
+            
+            logger.info(f"✓ Configuration imported from: {input_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to import configuration: {e}")
+            return False
+
+    def generate_execution_report(self, result):
+        """Generate a comprehensive execution report"""
+        report = {
+            'execution_timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'script_version': '2.1.0',
+            'game_path': str(self.game_path),
+            'configuration': {
+                'nwjs_version': self.nwjs_version,
+                'use_sdk': self.use_sdk,
+                'enable_devtools': self.enable_devtools,
+                'platform_optimized': self.platform_optimized,
+                'executable_name': self.executable_name,
+                'platform': self.current_platform,
+                'architecture': self.platform_info['architecture']
+            },
+            'operations_performed': [],
+            'files_modified': [],
+            'warnings': [],
+            'success': result.get('success', False),
+            'error': result.get('error', None)
+        }
+        
+        # Add rollback information if available
+        if 'rollback_data' in result:
+            report['rollback_data'] = result['rollback_data']
+        
+        if result.get('success', False):
+            report['operations_performed'] = [
+                'game_directory_validation',
+                'backup_creation',
+                'nwjs_setup',
+                'file_preservation',
+                'runtime_integration',
+                'executable_renaming',
+                'cleanup',
+                'shortcut_creation' if sys.platform == 'win32' else None
+            ]
+            
+            report['files_modified'] = [
+                'package.json',
+                'index.html',
+                f'{self.executable_name}{self.platform_info.get("executable_ext", "")}',
+                'nwjs_automator.log'
+            ]
+            
+            # Add configuration profile info if used
+            if self.current_config:
+                report['configuration_profile'] = self.current_config['name']
+            
+            # Add configuration template info if used
+            if self.applied_template:
+                report['configuration_template'] = self.applied_template['name']
+        else:
+            report['operations_performed'] = result.get('rollback_data', {}).get('operations', [])
+            report['error_details'] = {
+                'error_message': result.get('error', 'Unknown error'),
+                'rollback_status': result.get('rollback_status', 'not_attempted'),
+                'rollback_error': result.get('rollback_error', None)
+            }
+        
+        return report
+
+    def save_execution_report(self, report, output_path=None):
+        """Save execution report to a file"""
+        if not output_path:
+            reports_dir = Path.cwd() / 'execution_reports'
+            reports_dir.mkdir(exist_ok=True)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_path = reports_dir / f'report_{timestamp}.json'
+        
+        try:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"✓ Execution report saved: {output_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to save execution report: {e}")
+            return False
+
+    def display_help_contextual(self, operation=None):
+        """Display contextual help information"""
+        help_topics = {
+            'general': {
+                'title': 'NW.js Automator Help',
+                'description': 'Automates NW.js runtime updates for RPG Maker MV/MZ games',
+                'usage': 'python nwjs_automator.py [options]',
+                'examples': [
+                    'python nwjs_automator.py --game-path "C:/Games/MyGame"',
+                    'python nwjs_automator.py --game-path "/home/user/games/mygame" --nwjs-version v0.72.0',
+                    'python nwjs_automator.py --config-profile development --game-path "C:/Games/MyGame"'
+                ]
+            },
+            'profiles': {
+                'title': 'Configuration Profiles',
+                'description': 'Predefined configuration sets for different use cases',
+                'profiles': {
+                    'default': 'Balanced settings for most RPG Maker MV games',
+                    'development': 'Optimized for game development with debugging tools',
+                    'production': 'Optimized for final game distribution (smallest size)',
+                    'compatibility': 'Maximum compatibility with older games',
+                    'modern': 'Modern NW.js features (Windows 10+ required)'
+                }
+            },
+            'templates': {
+                'title': 'Configuration Templates',
+                'description': 'Reusable configuration patterns for specific needs',
+                'templates': {
+                    'minimal': 'Smallest possible game size',
+                    'debug': 'Full debugging support for development',
+                    'multilingual': 'Preserves multiple language files'
+                }
+            },
+            'rollback': {
+                'title': 'Automatic Rollback System',
+                'description': 'Automatically restores game to original state if errors occur',
+                'features': [
+                    'Monitors all critical operations',
+                    'Attempts automatic restoration on failure',
+                    'Provides detailed error information',
+                    'Preserves backup integrity'
+                ]
+            },
+            'config_management': {
+                'title': 'Configuration Management',
+                'description': 'Export, import, and manage configuration profiles',
+                'commands': {
+                    '--export-config': 'Export current configuration to a file',
+                    '--import-config': 'Import configuration from a file',
+                    '--config-profile': 'Use a predefined configuration profile',
+                    '--config-template': 'Apply a configuration template'
+                }
+            }
+        }
+        
+        if operation and operation in help_topics:
+            topic = help_topics[operation]
+            print(f"\n📚 {topic['title']}")
+            print(f"📋 {topic['description']}")
+            
+            if 'profiles' in topic:
+                print("\n📁 Available Profiles:")
+                for name, desc in topic['profiles'].items():
+                    print(f"  • {name}: {desc}")
+            
+            if 'templates' in topic:
+                print("\n📋 Available Templates:")
+                for name, desc in topic['templates'].items():
+                    print(f"  • {name}: {desc}")
+            
+            if 'features' in topic:
+                print("\n✨ Features:")
+                for feature in topic['features']:
+                    print(f"  • {feature}")
+            
+            if 'commands' in topic:
+                print("\n💻 Commands:")
+                for cmd, desc in topic['commands'].items():
+                    print(f"  • {cmd}: {desc}")
+            
+            if 'examples' in topic:
+                print("\n📝 Examples:")
+                for example in topic['examples']:
+                    print(f"  • {example}")
+        else:
+            # Show general help
+            general_help = help_topics['general']
+            print(f"\n📚 {general_help['title']}")
+            print(f"📋 {general_help['description']}")
+            print(f"\n💻 Usage: {general_help['usage']}")
+            print(f"\n📝 Examples:")
+            for example in general_help['examples']:
+                print(f"  • {example}")
+            
+            print(f"\n📚 Available Help Topics:")
+            for topic_name in help_topics:
+                if topic_name != 'general':
+                    print(f"  • {topic_name}")
+            
+            print(f"\n💡 Use --help-topic <topic> for detailed information on a specific topic")
 
     def detect_platform_info(self):
         """Detect platform information and return optimized configuration"""
@@ -1195,35 +1640,54 @@ class NWJSAutomator:
 
     def process_game(self, create_backup=True):
         logger.info(f"Starting NW.js update for: {self.game_path}")
-
+        
+        # Initialize rollback monitoring
+        rollback_data = {
+            'original_state': None,
+            'operations': [],
+            'current_operation': None,
+            'success': False
+        }
+        
         try:
             # Step 0: Validate game directory
             self.validate_game_directory()
+            rollback_data['operations'].append('validation_completed')
 
             # Step 0.5: Create backup if requested
+            backup_path = None
             if create_backup:
-                self.backup_game()
+                backup_path = self.backup_game()
+                rollback_data['original_state'] = backup_path
+                rollback_data['operations'].append('backup_created')
 
             # Step 1: Setup NW.js (download SDK build)
             nwjs_dir = self.setup_nwjs()
+            rollback_data['operations'].append('nwjs_setup_completed')
 
             # Step 3a: Save package.json, www folder, and index.html
             temp_dir = self.save_important_files()
+            rollback_data['operations'].append('files_saved')
 
             # Step 3b: Delete everything inside game folder
             self.clean_game_directory()
+            rollback_data['operations'].append('game_cleaned')
 
             # Step 3b: Copy NW.js files to game directory
             self.copy_nwjs_to_game(nwjs_dir)
+            rollback_data['operations'].append('nwjs_copied')
 
             # Step 3c: Restore package.json, www folder, and index.html
             self.restore_important_files(temp_dir)
+            rollback_data['operations'].append('files_restored')
 
             # Step 3c: Rename nw.exe to custom executable name
             game_exe = self.rename_executable()
+            rollback_data['operations'].append('executable_renamed')
 
             # Step 3d: Delete chromedriver (and other cleanup)
             self.cleanup_nwjs_files()
+            rollback_data['operations'].append('cleanup_completed')
 
             if not game_exe:
                 raise FileNotFoundError("Could not create game executable")
@@ -1231,10 +1695,15 @@ class NWJSAutomator:
             # Optional: Create shortcut on Windows
             if sys.platform == 'win32':
                 self.create_shortcut_windows(game_exe)
+                rollback_data['operations'].append('shortcut_created')
 
             # Cleanup temporary files
             self.cleanup_temp_files()
+            rollback_data['operations'].append('temp_cleaned')
 
+            # Mark operation as successful
+            rollback_data['success'] = True
+            
             logger.info("🎉 NW.js update completed successfully!")
             logger.info(f"🚀 Launch the game using: {game_exe}")
             logger.info(
@@ -1243,15 +1712,40 @@ class NWJSAutomator:
             return {
                 'success': True,
                 'game_executable': game_exe,
-                'game_path': self.game_path
+                'game_path': self.game_path,
+                'rollback_data': rollback_data
             }
 
         except Exception as e:
             logger.error(f"❌ Update failed: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            
+            # Attempt automatic rollback if we have backup data
+            if rollback_data['original_state'] and not rollback_data['success']:
+                logger.info("🔄 Attempting automatic rollback...")
+                try:
+                    self.restore_from_backup(rollback_data['original_state'])
+                    logger.info("✅ Automatic rollback completed successfully!")
+                    logger.info(f"💾 Game restored to original state from: {rollback_data['original_state']}")
+                    return {
+                        'success': False,
+                        'error': str(e),
+                        'rollback_status': 'success',
+                        'rollback_source': rollback_data['original_state']
+                    }
+                except Exception as rollback_error:
+                    logger.error(f"❌ Rollback failed: {rollback_error}")
+                    return {
+                        'success': False,
+                        'error': str(e),
+                        'rollback_status': 'failed',
+                        'rollback_error': str(rollback_error)
+                    }
+            else:
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'rollback_status': 'not_attempted'
+                }
 
 
 def get_user_input():
@@ -1397,6 +1891,18 @@ def main():
     parser.add_argument('--log-level', default='INFO',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help='Set logging level (default: INFO)')
+    parser.add_argument('--config-profile', 
+                        choices=['default', 'development', 'production', 'compatibility', 'modern'],
+                        help='Use a predefined configuration profile')
+    parser.add_argument('--config-template', 
+                        choices=['minimal', 'debug', 'multilingual'],
+                        help='Apply a configuration template')
+    parser.add_argument('--export-config', 
+                        help='Export current configuration to a file')
+    parser.add_argument('--import-config', 
+                        help='Import configuration from a file')
+    parser.add_argument('--help-topic', 
+                        help='Display contextual help on a specific topic')
 
     args = parser.parse_args()
 
@@ -1460,7 +1966,63 @@ def main():
         # Determine logging level
         log_level = args.log_level if not args.verbose else 'DEBUG'
         
-        # Create automator instance
+        # Handle configuration export/import before creating automator
+        if args.export_config:
+            # Create a temporary automator to export default config
+            temp_automator = NWJSAutomator(
+                game_path=args.game_path or '.',
+                nwjs_version=args.nwjs_version,
+                use_sdk=not args.no_sdk,
+                executable_name=executable_name,
+                enable_devtools=args.devtools,
+                platform_optimized=args.platform_optimized,
+                logging_level=log_level
+            )
+            if temp_automator.export_config(args.export_config):
+                print(f"✅ Configuration exported to: {args.export_config}")
+                sys.exit(0)
+            else:
+                print(f"❌ Failed to export configuration")
+                sys.exit(1)
+        
+        # Handle help topic display
+        if args.help_topic:
+            temp_automator = NWJSAutomator(
+                game_path=args.game_path or '.',
+                nwjs_version=args.nwjs_version,
+                use_sdk=not args.no_sdk,
+                executable_name=executable_name,
+                enable_devtools=args.devtools,
+                platform_optimized=args.platform_optimized,
+                logging_level=log_level
+            )
+            temp_automator.display_help_contextual(args.help_topic)
+            sys.exit(0)
+        
+        if args.import_config:
+            # Create a temporary automator to import config
+            temp_automator = NWJSAutomator(
+                game_path=args.game_path or '.',
+                nwjs_version=args.nwjs_version,
+                use_sdk=not args.no_sdk,
+                executable_name=executable_name,
+                enable_devtools=args.devtools,
+                platform_optimized=args.platform_optimized,
+                logging_level=log_level
+            )
+            if temp_automator.import_config(args.import_config):
+                print(f"✅ Configuration imported from: {args.import_config}")
+                # Update arguments from imported config
+                args.nwjs_version = temp_automator.nwjs_version
+                args.no_sdk = not temp_automator.use_sdk
+                executable_name = temp_automator.executable_name
+                args.devtools = temp_automator.enable_devtools
+                args.platform_optimized = temp_automator.platform_optimized
+            else:
+                print(f"❌ Failed to import configuration")
+                sys.exit(1)
+        
+        # Create automator instance with configuration support
         automator = NWJSAutomator(
             game_path=args.game_path,
             nwjs_path=args.nwjs_path,
@@ -1469,7 +2031,9 @@ def main():
             executable_name=executable_name,
             enable_devtools=args.devtools,
             platform_optimized=args.platform_optimized,
-            logging_level=log_level
+            logging_level=log_level,
+            config_profile=args.config_profile,
+            config_template=args.config_template
         )
         
         # Configure SDK features based on user preferences
@@ -1481,6 +2045,12 @@ def main():
         # Process the game
         result = automator.process_game(create_backup=not args.no_backup)
 
+    # Generate execution report
+    execution_report = automator.generate_execution_report(result)
+    
+    # Save execution report
+    automator.save_execution_report(execution_report)
+    
     if result['success']:
         print(f"\n✅ Success! Game processed successfully.")
         print(f"📁 Game directory: {result['game_path']}")
@@ -1488,9 +2058,18 @@ def main():
         print(f"\n🎮 You can now launch your game using your custom executable!")
         print(
             f"💡 Type 'process.versions' in the game console to verify your NW.js version!")
+        print(f"\n📊 Execution report saved to: execution_reports/report_{execution_report['execution_timestamp'].replace(' ', '_').replace(':', '-')}.json")
 
     else:
         print(f"\n❌ Failed: {result['error']}")
+        if result.get('rollback_status') == 'success':
+            print(f"✅ Automatic rollback completed successfully!")
+            print(f"💾 Game restored to original state")
+        elif result.get('rollback_status') == 'failed':
+            print(f"❌ Rollback failed: {result.get('rollback_error', 'Unknown error')}")
+            print(f"💾 Manual restoration may be needed from backup")
+        
+        print(f"\n📊 Execution report saved with error details")
         sys.exit(1)
 
 
