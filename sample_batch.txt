@@ -1,0 +1,13 @@
+# RPG Maker NW.js Automator Batch File
+# Each line should contain the path to an RPG Maker MV/MZ game directory
+# Lines starting with # are comments and will be ignored
+
+# Example paths (replace with your actual game paths):
+# C:\Games\RPGGame1
+# C:\Games\RPGGame2
+# /home/user/games/rpg_game1
+# /home/user/games/rpg_game2
+
+# Add your game paths below:
+# C:\Path\To\Your\Game1
+# C:\Path\To\Your\Game2
