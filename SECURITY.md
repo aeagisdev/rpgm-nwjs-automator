@@ -10,15 +10,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability, please report it responsibly:
-
-1. **Do not** open a public GitHub issue
-2. Email the maintainer at **aegisdev@proton.me** with:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-3. You will receive an acknowledgment within 48 hours
-4. A fix will be prioritized and released as a patch version
+If you discover a security vulnerability, please report it responsibly a fix will be prioritized and released as a patch version
 
 ## Security Model
 
