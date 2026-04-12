@@ -17,9 +17,6 @@ jobs:
           - os: windows-latest
             artifact_name: NWjsAutomator-Windows-x64
             archive_ext: zip
-          - os: macos-13
-            artifact_name: NWjsAutomator-macOS-Intel
-            archive_ext: zip
           - os: macos-latest
             artifact_name: NWjsAutomator-macOS-ARM64
             archive_ext: zip
