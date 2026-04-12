@@ -65,3 +65,10 @@ nwjs-v*
 NWJS_Automator.desktop
 AGENTS.md
 OPTIMIZATION_PLAN.md
+
+# Development and utility scripts
+performance_optimizer.py
+security_hardening.py
+test_suite.py
+update_system.py
+PHASE_4_COMPLETION_SUMMARY.md
