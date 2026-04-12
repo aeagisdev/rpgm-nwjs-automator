@@ -1,4 +1,4 @@
-# RPG Maker MV NW.js Automation Script v2.1
+# RPG Maker MV NW.js Automation Script v2.1.1
 
 A Python script that completely automates the process of replacing RPG Maker MV/MZ game runtime with a modern NW.js installation, providing better performance, space savings, and developer tools access.
 
@@ -15,8 +15,12 @@ This script transforms your RPG Maker games by replacing their outdated runtime 
 - **🤖 Zero Manual Work**: Fully automated with intelligent error handling
 - **🔒 100% Safe**: Creates backups and validates everything before changes
 - **🌍 Cross-Platform**: Works on Windows, macOS, and Linux
+- **🔄 Automatic Rollback**: Self-healing system restores game if errors occur
+- **📋 Configuration Profiles**: Predefined settings for different use cases
+- **📊 Execution Reports**: Detailed logs of all operations performed
+- **💡 Contextual Help**: Integrated documentation and guidance
 
-### 🆕 New in v2.1 - Advanced Features
+### 🆕 New in v2.1.1 - Advanced Features
 
 #### 🔍 Advanced package.json Validation
 - **Comprehensive Field Validation**: Validates all NW.js critical fields
@@ -43,6 +47,34 @@ This script transforms your RPG Maker games by replacing their outdated runtime 
 - **Backup Manifest**: Detailed inventory of all backed-up files
 - **Automatic Cleanup**: Removes old backups (keeps last 3)
 - **Restoration Verification**: Validates restored files
+
+#### 🔄 Automatic Rollback System (Phase 3)
+- **Operation Monitoring**: Tracks all critical operations during processing
+- **Self-Healing**: Automatically restores game to original state on failure
+- **Detailed Error Reporting**: Provides comprehensive error information
+- **Backup Integrity Preservation**: Ensures backups remain valid for restoration
+- **Status Tracking**: Monitors rollback success/failure with detailed logs
+
+#### 📋 Configuration Management (Phase 3)
+- **Predefined Profiles**: 5 optimized configuration sets for different scenarios
+- **Configuration Templates**: 3 reusable patterns for common use cases
+- **Export/Import**: Save and load custom configurations
+- **Profile Customization**: Create and save custom configuration profiles
+- **Template Application**: Apply templates to quickly configure common settings
+
+#### 📊 Execution Reporting (Phase 3)
+- **Automatic Report Generation**: Creates detailed execution reports
+- **Operation Tracking**: Records all operations performed during execution
+- **File Modification Log**: Documents all files modified during processing
+- **Error Documentation**: Captures detailed error information for troubleshooting
+- **Configuration Snapshot**: Saves complete configuration used for the operation
+
+#### 💡 Integrated Documentation (Phase 3)
+- **Contextual Help System**: Topic-based help accessible via command line
+- **Configuration Guidance**: Detailed information on profiles and templates
+- **Feature Documentation**: Comprehensive explanations of all capabilities
+- **Usage Examples**: Practical examples for common scenarios
+- **Troubleshooting Guide**: Integrated troubleshooting information
 =======
 ### 🆕 New in v2.1 - Advanced Features
 
@@ -203,8 +235,75 @@ Download `nwjs_automator.py` from the [releases page](https://github.com/aeagisd
    - 🔧 **NW.js Version**: Pick from optimized presets or go custom
    - 🛠️ **Build Type**: SDK (recommended) or Normal
    - 💾 **Backup**: Yes (recommended) or No
+   - 📋 **Configuration Profile**: Choose from predefined profiles (optional)
+   - 📋 **Configuration Template**: Apply templates for common scenarios (optional)
 
 3. **Sit back and watch**: The script handles everything automatically!
+
+### 🎯 Using Configuration Profiles
+
+The script includes 5 predefined configuration profiles:
+
+| Profile | Description | Best For |
+|---------|-------------|----------|
+| **default** | Balanced settings | Most RPG Maker MV games |
+| **development** | Debugging enabled | Game development & testing |
+| **production** | Minimal size | Final game distribution |
+| **compatibility** | Older NW.js version | Maximum compatibility |
+| **modern** | Latest features | Windows 10+ systems |
+
+**Usage**:
+```bash
+python nwjs_automator.py --config-profile development --game-path "C:/Games/MyGame"
+```
+
+### 📋 Using Configuration Templates
+
+Apply templates for common scenarios:
+
+| Template | Description | Use Case |
+|----------|-------------|----------|
+| **minimal** | Smallest possible size | Distribution builds |
+| **debug** | Full debugging support | Development & testing |
+| **multilingual** | Preserves language files | International games |
+
+**Usage**:
+```bash
+python nwjs_automator.py --config-template debug --game-path "C:/Games/MyGame"
+```
+
+### 💾 Configuration Management
+
+**Export current configuration**:
+```bash
+python nwjs_automator.py --export-config my_config.json --game-path "C:/Games/MyGame"
+```
+
+**Import configuration**:
+```bash
+python nwjs_automator.py --import-config my_config.json --game-path "C:/Games/MyGame"
+```
+
+### 💡 Contextual Help System
+
+Get detailed help on specific topics:
+
+```bash
+# General help
+python nwjs_automator.py --help-topic general
+
+# Configuration profiles help
+python nwjs_automator.py --help-topic profiles
+
+# Configuration templates help
+python nwjs_automator.py --help-topic templates
+
+# Rollback system help
+python nwjs_automator.py --help-topic rollback
+
+# Configuration management help
+python nwjs_automator.py --help-topic config_management
+```
 
 ### 🎯 NW.js Version Guide
 
@@ -274,6 +373,11 @@ python nwjs_automator.py --game-path "C:\Your\Game" --verbose
 | `--devtools` | Enable developer tools (F12 access) | Disabled |
 | `--platform-optimized` | Enable platform-specific optimizations | Disabled |
 | `--log-level` | Set logging level (DEBUG/INFO/WARNING/ERROR/CRITICAL) | INFO |
+| `--config-profile` | Use a predefined configuration profile (default/development/production/compatibility/modern) | None |
+| `--config-template` | Apply a configuration template (minimal/debug/multilingual) | None |
+| `--export-config` | Export current configuration to a file | None |
+| `--import-config` | Import configuration from a file | None |
+| `--help-topic` | Display contextual help on a specific topic | None |
 
 ## 🔄 What the Script Does (Step by Step)
 
@@ -287,29 +391,42 @@ python nwjs_automator.py --game-path "C:\Your\Game" --verbose
 - ✅ Creates complete backup as `GameName_backup`
 - ✅ Backs up critical files (`package.json`, `www/`, `index.html`)
 - ✅ Validates backup integrity before proceeding
+- ✅ Initializes rollback monitoring system
 
 ### 3. 📥 NW.js Setup Phase
 - ✅ Downloads specified NW.js version (if not provided)
 - ✅ Extracts and prepares NW.js runtime
 - ✅ Chooses correct architecture (x64, x86, ARM) automatically
+- ✅ Applies configuration profile settings if specified
 
 ### 4. 🧹 Cleanup Phase
 - ✅ Removes old NW.js runtime files from game
 - ✅ Preserves all game assets and custom files
 - ✅ Cleans up unnecessary files (chromedriver, docs, etc.)
 - ✅ Keeps only essential locale files (en-US)
+- ✅ Applies configuration template cleanup rules
 
 ### 5. 🔧 Integration Phase
 - ✅ Copies new NW.js runtime to game directory
 - ✅ Restores game files with proper structure
 - ✅ Creates/fixes `index.html` if missing
 - ✅ Renames executable to your custom name
+- ✅ Applies platform-specific optimizations
 
 ### 6. ✨ Finishing Phase
 - ✅ Removes unnecessary NW.js files
 - ✅ Creates Windows shortcuts (if applicable)
 - ✅ Sets proper file permissions
 - ✅ Validates final game structure
+- ✅ Generates comprehensive execution report
+- ✅ Saves execution report with all operation details
+
+### 7. 🔄 Rollback Phase (if needed)
+- ✅ Detects processing failures automatically
+- ✅ Attempts automatic restoration from backup
+- ✅ Provides detailed error information
+- ✅ Preserves backup integrity for manual restoration
+- ✅ Documents rollback status in execution report
 
 ## 📁 Before & After
 
@@ -370,6 +487,125 @@ $gameVariables.setValue(1, 100)
 $gameParty.addActor(2)
 SceneManager.push(Scene_Battle)
 ```
+
+## 🔄 Automatic Rollback System
+
+The script includes a comprehensive automatic rollback system that protects your games:
+
+### ✨ Key Features
+
+- **Operation Monitoring**: Tracks every critical operation during processing
+- **Failure Detection**: Automatically detects when something goes wrong
+- **Self-Healing**: Attempts to restore the game to its original state
+- **Detailed Reporting**: Provides comprehensive error information
+- **Backup Preservation**: Ensures backups remain intact for manual restoration
+
+### 🎯 How It Works
+
+1. **Monitoring**: All critical operations are tracked and logged
+2. **Validation**: Each step is validated before proceeding
+3. **Error Detection**: Failures are caught immediately
+4. **Automatic Restoration**: The system attempts to restore from the most recent backup
+5. **Status Reporting**: Detailed information about what happened and what was restored
+
+### 📋 Rollback Scenarios
+
+| Scenario | Trigger | Action |
+|----------|---------|--------|
+| **File Validation Failure** | Invalid game directory structure | Restore from backup |
+| **Download Failure** | Cannot download NW.js | Restore from backup |
+| **Extraction Failure** | Cannot extract NW.js archive | Restore from backup |
+| **File Operation Failure** | Cannot copy/rename files | Restore from backup |
+| **Integrity Check Failure** | Final validation fails | Restore from backup |
+
+### 💡 Rollback Status Messages
+
+- **✅ Success**: Operation completed successfully
+- **⚠️ Rollback Successful**: Automatic restoration completed
+- **❌ Rollback Failed**: Manual restoration needed
+- **ℹ️ Not Attempted**: No backup available or error occurred before backup
+
+### 🔧 Manual Restoration
+
+If automatic rollback fails, you can manually restore:
+
+```bash
+# Manual restoration from backup
+python nwjs_automator.py --game-path "C:/Games/MyGame" --no-backup
+# Then manually copy files from the backup directory
+```
+
+## 📊 Execution Reports
+
+Every execution generates a detailed report with comprehensive information:
+
+### 📋 Report Contents
+
+- **Execution Timestamp**: When the operation was performed
+- **Script Version**: Version of the automation script
+- **Game Path**: Full path to the processed game
+- **Configuration**: Complete configuration used
+- **Operations Performed**: List of all operations completed
+- **Files Modified**: Detailed list of modified files
+- **Warnings**: Any warnings encountered
+- **Success Status**: Whether operation succeeded
+- **Error Details**: Comprehensive error information (if applicable)
+- **Rollback Data**: Rollback status and details (if applicable)
+
+### 💾 Report Location
+
+Reports are saved in the `execution_reports/` directory with timestamped filenames:
+
+```
+execution_reports/
+└── report_20260412_143022.json
+```
+
+### 📊 Report Structure Example
+
+```json
+{
+  "execution_timestamp": "2026-04-12 14:30:22",
+  "script_version": "2.1.0",
+  "game_path": "C:/Games/MyGame",
+  "configuration": {
+    "nwjs_version": "v0.49.2",
+    "use_sdk": true,
+    "enable_devtools": false,
+    "platform_optimized": true,
+    "executable_name": "MyGame",
+    "platform": "windows",
+    "architecture": "AMD64"
+  },
+  "operations_performed": [
+    "game_directory_validation",
+    "backup_creation",
+    "nwjs_setup",
+    "file_preservation",
+    "runtime_integration",
+    "executable_renaming",
+    "cleanup",
+    "shortcut_creation"
+  ],
+  "files_modified": [
+    "package.json",
+    "index.html",
+    "MyGame.exe",
+    "nwjs_automator.log"
+  ],
+  "warnings": [],
+  "success": true,
+  "error": null
+}
+```
+
+### 💡 Using Execution Reports
+
+- **Troubleshooting**: Identify exactly what happened during processing
+- **Reproduction**: Recreate the same configuration for consistent results
+- **Debugging**: Understand error conditions and rollback status
+- **Documentation**: Keep records of all processing operations
+- **Support**: Provide detailed information when requesting help
 
 ## 🌟 Special Features
 
@@ -518,8 +754,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔄 Version History
 
-### v2.1.0 - Advanced Automation (Current)
+### v2.1.1 - Phase 3 Implementation
 **Release Date**: 12 April 2026
+
+✨ **Phase 3 Features Implemented**:
+- **Automatic Rollback System**: Self-healing mechanism that restores game to original state on failure
+- **Configuration Profiles**: 5 predefined configuration sets for different use cases
+- **Configuration Templates**: 3 reusable configuration patterns for common scenarios
+- **Configuration Management**: Export/import configurations for reuse across projects
+- **Execution Reporting**: Automatic generation of detailed execution reports
+- **Contextual Help System**: Integrated documentation accessible via command line
 
 ✨ **New Advanced Features**:
 - **Advanced package.json Validation**: Comprehensive validation of all NW.js critical fields with automatic correction
