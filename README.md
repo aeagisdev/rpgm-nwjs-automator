@@ -1,4 +1,4 @@
-# RPG Maker MV NW.js Automation Script
+# RPG Maker MV NW.js Automation Script v2.1
 
 A Python script that completely automates the process of replacing RPG Maker MV/MZ game runtime with a modern NW.js installation, providing better performance, space savings, and developer tools access.
 
@@ -6,7 +6,7 @@ A Python script that completely automates the process of replacing RPG Maker MV/
 
 This script transforms your RPG Maker games by replacing their outdated runtime with modern NW.js versions.
 
-### ✨ Key Benefits
+### ✨ Key Benefits (v2.1 Enhanced)
 
 - **💾 Massive Space Savings**: Save 100-120MB per game (one NW.js serves all games)
 - **🛠️ Developer Tools**: Press F12 for debugging, modding, and game analysis
@@ -16,25 +16,128 @@ This script transforms your RPG Maker games by replacing their outdated runtime 
 - **🔒 100% Safe**: Creates backups and validates everything before changes
 - **🌍 Cross-Platform**: Works on Windows, macOS, and Linux
 
-### Automatic Processing
+### 🆕 New in v2.1 - Advanced Features
+
+#### 🔍 Advanced package.json Validation
+- **Comprehensive Field Validation**: Validates all NW.js critical fields
+- **Automatic Correction**: Fixes invalid formats and missing fields
+- **Smart Defaults**: Adds recommended configurations automatically
+- **Format Support**: Supports official KADOKAWA/RPGMV format
+
+#### 🎯 Intelligent Version Management
+- **Compatibility Database**: Validates versions against known compatible NW.js releases
+- **Platform-Specific Recommendations**: Suggests optimal versions for each OS
+- **Fallback Mechanism**: Automatic fallback to tested versions if needed
+- **Version Validation**: Checks version format validity before processing
+
+#### 🗑️ Smart Cleanup System
+- **Context-Aware Cleanup**: Analyzes files before removal
+- **Critical File Protection**: Whitelist system prevents accidental deletion
+- **Debug Mode**: Option to preserve debug files
+- **Locale Management**: Intelligent handling of localization files
+- **Post-Cleanup Analysis**: Provides optimization suggestions
+
+#### 💾 Robust Backup System
+- **Incremental Backups**: Timestamped backups with rotation
+- **Integrity Verification**: Checksum validation of backup contents
+- **Backup Manifest**: Detailed inventory of all backed-up files
+- **Automatic Cleanup**: Removes old backups (keeps last 3)
+- **Restoration Verification**: Validates restored files
+=======
+### 🆕 New in v2.1 - Advanced Features
+
+#### 🔍 Advanced package.json Validation
+- **Comprehensive Field Validation**: Validates all NW.js critical fields
+- **Automatic Correction**: Fixes invalid formats and missing fields
+- **Smart Defaults**: Adds recommended configurations automatically
+- **Format Support**: Supports official KADOKAWA/RPGMV format
+
+#### 🎯 Intelligent Version Management
+- **Compatibility Database**: Validates versions against known compatible NW.js releases
+- **Platform-Specific Recommendations**: Suggests optimal versions for each OS
+- **Fallback Mechanism**: Automatic fallback to tested versions if needed
+- **Version Validation**: Checks version format validity before processing
+
+#### 🗑️ Smart Cleanup System
+- **Context-Aware Cleanup**: Analyzes files before removal
+- **Critical File Protection**: Whitelist system prevents accidental deletion
+- **Debug Mode**: Option to preserve debug files
+- **Locale Management**: Intelligent handling of localization files
+- **Post-Cleanup Analysis**: Provides optimization suggestions
+
+#### 💾 Robust Backup System
+- **Incremental Backups**: Timestamped backups with rotation
+- **Integrity Verification**: Checksum validation of backup contents
+- **Backup Manifest**: Detailed inventory of all backed-up files
+- **Automatic Cleanup**: Removes old backups (keeps last 3)
+- **Restoration Verification**: Validates restored files
+
+#### 🛠️ Advanced SDK Support (Phase 2)
+- **SDK Compatibility Database**: Tracks version stability and testing status
+- **Automatic Version Validation**: Validates NW.js versions with fallback suggestions
+- **Developer Tools Support**: Enable F12 access with `--devtools` flag
+- **SDK Feature Configuration**: Automatic cleanup list adjustment based on SDK usage
+
+#### 🌍 Platform-Specific Management (Phase 2)
+- **Platform Detection**: Automatic detection of Windows/macOS/Linux with architecture info
+- **ARM64 Support**: Special handling for Apple Silicon (M1/M2) Macs
+- **Platform Optimizations**: Recommended versions and path handling per OS
+- **Platform-Specific Cleanup**: Intelligent file preservation based on platform
+
+#### 📊 Enhanced Logging & Debugging (Phase 2)
+- **Configurable Logging Levels**: DEBUG/INFO/WARNING/ERROR/CRITICAL
+- **File Logging with Rotation**: 1MB max size, 3 backup files
+- **Timestamped Logs**: Detailed timestamps for all log entries
+- **Command-Line Control**: `--log-level` parameter for precise control
+
+#### 🎯 Improved User Interface (Phase 2)
+- **Enhanced CLI**: New `--devtools`, `--platform-optimized`, `--log-level` options
+- **Interactive Mode Updates**: Additional configuration options in interactive setup
+- **Configuration Summary**: Shows all new options in pre-execution summary
+- **Better Feedback**: More detailed status messages and warnings
+
+#### 🎯 Intelligent Version Management
+- **Compatibility Database**: Validates versions against known compatible NW.js releases
+- **Platform-Specific Recommendations**: Suggests optimal versions for each OS
+- **Fallback Mechanism**: Automatic fallback to tested versions if needed
+- **Version Validation**: Checks version format validity before processing
+
+#### 🗑️ Smart Cleanup System
+- **Context-Aware Cleanup**: Analyzes files before removal
+- **Critical File Protection**: Whitelist system prevents accidental deletion
+- **Debug Mode**: Option to preserve debug files
+- **Locale Management**: Intelligent handling of localization files
+- **Post-Cleanup Analysis**: Provides optimization suggestions
+
+#### 💾 Robust Backup System
+- **Incremental Backups**: Timestamped backups with rotation
+- **Integrity Verification**: Checksum validation of backup contents
+- **Backup Manifest**: Detailed inventory of all backed-up files
+- **Automatic Cleanup**: Removes old backups (keeps last 3)
+- **Restoration Verification**: Validates restored files
+
+### Automatic Processing (Enhanced)
 - **Game Validation**: Verifies the directory contains a valid RPG Maker MV/MZ game
 - **NW.js Download**: Automatically downloads the specified NW.js version if not provided
-- **Runtime Cleanup**: Intelligently removes NW.js runtime files while preserving game assets
-- **Configuration Updates**: Modifies `package.json` with required fields for newer NW.js versions
+- **Runtime Cleanup**: **Intelligently** removes NW.js runtime files while preserving game assets
+- **Configuration Updates**: **Advanced** modification of `package.json` with comprehensive validation
 - **Launch Script Creation**: Creates platform-specific launch scripts (.bat for Windows, .sh for Unix)
 
-### One-Click Solutions
+### One-Click Solutions (Improved)
 - **Intelligent Setup**: Launch scripts automatically check and install dependencies
 - **Cross-Platform**: Works seamlessly on Windows, macOS, and Linux
 - **Desktop Integration**: Optional desktop shortcuts for instant access
 - **Zero Configuration**: Works out-of-the-box with sensible defaults
 - **Visual Feedback**: Colored terminal output with clear progress indicators
+- **Error Recovery**: Automatic fallback mechanisms for common issues
 
-### Safety Features
-- **Automatic Backup**: Creates a backup of the original game before modifications
-- **File Preservation**: Carefully preserves game assets, README files, and custom directories
-- **Error Handling**: Comprehensive error handling with informative messages
-- **Validation**: Multiple validation steps to ensure safe processing
+### Safety Features (Enhanced)
+- **Automatic Backup**: Creates **verified** backups of the original game before modifications
+- **File Preservation**: **Intelligently** preserves game assets, README files, and custom directories
+- **Error Handling**: **Comprehensive** error handling with informative messages
+- **Validation**: **Multiple** validation steps to ensure safe processing
+- **Integrity Checks**: **Checksum verification** for all critical operations
+- **Rollback Capability**: Ability to restore from backup if issues occur
 
 ## 💻 Ultra-Quick Setup (30 Seconds!)
 
@@ -53,12 +156,15 @@ This script transforms your RPG Maker games by replacing their outdated runtime 
 - ✅ Launch the automation tool
 - ✅ Keep the terminal open to show results
 
-### Method 2: Command Line (For Advanced Users)
-
-The script will guide you through everything with a user-friendly interface!
-
+### Method 2: Interactive Mode (Recommended)
 ```bash
 python nwjs_automator.py
+```
+The script will guide you through everything with a user-friendly interface!
+
+### Method 2: Command Line (For Advanced Users)
+```bash
+python nwjs_automator.py --game-path "C:\Path\To\Your\Game"
 ```
 
 ## 📋 Requirements
@@ -165,6 +271,9 @@ python nwjs_automator.py --game-path "C:\Your\Game" --verbose
 | `--no-backup` | Skip creating backup | Create backup |
 | `--verbose`, `-v` | Enable detailed logging | Normal logging |
 | `--interactive`, `-i` | Force interactive mode | Auto-detect |
+| `--devtools` | Enable developer tools (F12 access) | Disabled |
+| `--platform-optimized` | Enable platform-specific optimizations | Disabled |
+| `--log-level` | Set logging level (DEBUG/INFO/WARNING/ERROR/CRITICAL) | INFO |
 
 ## 🔄 What the Script Does (Step by Step)
 
@@ -409,11 +518,55 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔄 Version History
 
-### v2.0.1 - Complete Rewrite (Current)
-- 🪳 **Fixed**: Indentation error on line 460-462 (thanks to [T1MM5H](https://github.com/T1MM5H) for reporting the issue)
-- 🪳 **Fixed**: Os specific scripts and error handling improved
+### v2.1.0 - Advanced Automation (Current)
+**Release Date**: 12 April 2026
 
-### v2.0.0 - Complete Rewrite (Current)
+✨ **New Advanced Features**:
+- **Advanced package.json Validation**: Comprehensive validation of all NW.js critical fields with automatic correction
+- **Intelligent Version Management**: Compatibility database with platform-specific recommendations and fallback mechanism
+- **Smart Cleanup System**: Context-aware cleanup with critical file protection and post-cleanup analysis
+- **Robust Backup System**: Incremental backups with integrity verification and automatic rotation
+- **Enhanced Error Recovery**: Automatic fallback mechanisms and restoration capabilities
+
+🔧 **Major Improvements**:
+- **Validation**: Comprehensive package.json field validation with smart defaults and format support
+- **Version Handling**: Version compatibility checking with platform-specific suggestions
+- **Cleanup**: Enhanced cleanup with whitelist protection and intelligent file analysis
+- **Backup**: Backup integrity verification with manifest generation and automatic cleanup
+- **Safety**: Improved error handling with multiple validation steps and integrity checks
+
+🐛 **Critical Bug Fixes**:
+- Fixed package.json handling for missing or invalid fields
+- Fixed version format validation for non-standard versions
+- Fixed critical file preservation during cleanup operations
+- Fixed backup verification and restoration processes
+
+📖 **Documentation Enhancements**:
+- Updated README with detailed v2.1 feature descriptions
+- Added usage examples for advanced validation and version management
+- Enhanced troubleshooting section with common issues and solutions
+
+### v2.1.1 - Phase 2 Implementation
+**Release Date**: 12 April 2026
+
+✨ **Phase 2 Features Implemented**:
+- **Advanced SDK Support**: SDK compatibility database with version validation and developer tools support
+- **Platform-Specific Management**: Automatic platform detection with ARM64 support and optimizations
+- **Enhanced Logging**: Configurable logging levels with file rotation and timestamped entries
+- **Improved UI**: Enhanced CLI with new options and better interactive mode experience
+
+🔧 **Technical Improvements**:
+- **SDK Validation**: Automatic version compatibility checking with fallback mechanisms
+- **Platform Detection**: Windows/macOS/Linux detection with architecture-specific optimizations
+- **Logging System**: File-based logging with rotation (1MB max, 3 backups)
+- **Command Line**: New `--devtools`, `--platform-optimized`, `--log-level` options
+
+📖 **Updated Documentation**:
+- Added Phase 2 features to README
+- Updated command line arguments table
+- Enhanced usage examples with new options
+
+### v2.0.0 - Complete Rewrite
 - ✨ **New**: Completely redesigned interactive experience
 - ✨ **New**: Smart NW.js version presets with compatibility guidance
 - ✨ **New**: Automatic `index.html` creation and validation
