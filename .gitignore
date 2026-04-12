@@ -64,6 +64,7 @@ nwjs-v*
 # Project specific
 NWJS_Automator.desktop
 
-# Markdown files (only README.md is committed)
+# Markdown files (only project docs are committed)
 *.md
 !README.md
+!CONTRIBUTING.md
