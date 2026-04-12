@@ -67,9 +67,3 @@ NWJS_Automator.desktop
 # Markdown files (only README.md is committed)
 *.md
 !README.md
-
-# Development and utility scripts
-performance_optimizer.py
-security_hardening.py
-test_suite.py
-update_system.py

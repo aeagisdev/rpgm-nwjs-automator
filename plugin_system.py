@@ -73,7 +73,11 @@ class PluginManager:
     def _setup_default_plugin_dirs(self):
         """Set up default plugin directories"""
         # Add current directory plugins folder
-        current_dir = Path(__file__).parent
+        import sys as _sys
+        if getattr(_sys, 'frozen', False):
+            current_dir = Path(_sys._MEIPASS)
+        else:
+            current_dir = Path(__file__).parent
         plugins_dir = current_dir / "plugins"
         if plugins_dir.exists():
             self.add_plugin_directory(str(plugins_dir))
