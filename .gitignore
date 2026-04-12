@@ -68,3 +68,4 @@ NWJS_Automator.desktop
 *.md
 !README.md
 !CONTRIBUTING.md
+!SECURITY.md
