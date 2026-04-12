@@ -78,7 +78,7 @@ echo Starting NW.js Automator...
 echo.
 
 REM Run the Python script
-python "nwjs_automator.py"
+python "nwjs_automator.py" --interactive
 set PYTHON_EXIT_CODE=%errorlevel%
 
 echo.
