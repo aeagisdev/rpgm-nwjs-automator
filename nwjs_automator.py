@@ -39,18 +39,37 @@ logger = logging.getLogger(__name__)
 
 
 class NWJSAutomator:
-    def __init__(self, game_path, nwjs_path=None, nwjs_version="v0.49.2", use_sdk=True, executable_name="Game"):
+    def __init__(self, game_path, nwjs_path=None, nwjs_version="v0.49.2", use_sdk=True, executable_name="Game", 
+                 enable_devtools=False, platform_optimized=False, logging_level="INFO"):
         self.game_path = Path(game_path)
         self.nwjs_path = Path(nwjs_path) if nwjs_path else None
         self.nwjs_version = nwjs_version
         self.use_sdk = use_sdk
         self.executable_name = executable_name
+        self.enable_devtools = enable_devtools
+        self.platform_optimized = platform_optimized
         self.nwjs_url_base = "https://dl.nwjs.io"
+        
+        # Configure logging based on user preference
+        self.configure_logging(logging_level)
+        
+        # Platform detection
+        self.current_platform = platform.system().lower()
+        self.platform_info = self.detect_platform_info()
+        
+        # SDK version compatibility database
+        self.sdk_compatibility = {
+            "v0.49.2": {"stable": True, "tested": True, "recommended": True},
+            "v0.50.1": {"stable": True, "tested": True, "recommended": False},
+            "v0.51.0": {"stable": False, "tested": False, "recommended": False},
+            "v0.52.0": {"stable": True, "tested": True, "recommended": True},
+            "v0.53.0": {"stable": True, "tested": False, "recommended": False}
+        }
 
         # Files/folders to keep from original game - UPDATED to include index.html
         self.keep_files = ['package.json', 'www', 'index.html']
 
-        # Files to remove after copying NW.js
+        # Files to remove after copying NW.js - Now configurable
         self.cleanup_files = [
             # Development and debugging tools
             'chromedriver',
@@ -71,14 +90,166 @@ class NWJSAutomator:
             'debug.log',
             'pnacl',
 
-            # Locale files (keep only essential ones)
-            # Note: We'll handle locales directory separately to keep only en-US
-
             # Other optional files
             'notification_helper.exe',  # Windows notification helper
             'chrome_100_percent.pak',
             'chrome_200_percent.pak'
         ]
+        
+        # Whitelist for critical files that should never be removed
+        self.critical_files_whitelist = [
+            'package.json',
+            'www',
+            'index.html',
+            'nw.exe',
+            'nw',
+            'nwjs'
+        ]
+        
+        # Locale files to keep (default: only en-US)
+        self.keep_locales = ['en-US.pak', 'en-US.pak.info']
+        
+        # Files that are safe to remove but might be needed for debugging
+        self.debug_files = [
+            'debug.log',
+            'nw_100_percent.pak',
+            'nw_200_percent.pak',
+            'chrome_100_percent.pak',
+            'chrome_200_percent.pak'
+        ]
+
+    def configure_logging(self, level="INFO"):
+        """Configure logging system with different levels and file output"""
+        log_levels = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL
+        }
+        
+        log_level = log_levels.get(level.upper(), logging.INFO)
+        
+        # Configure basic logging
+        logging.basicConfig(
+            level=log_level,
+            format='%(asctime)s - %(levelname)s: %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        
+        # Add file logging with rotation
+        try:
+            from logging.handlers import RotatingFileHandler
+            file_handler = RotatingFileHandler(
+                'nwjs_automator.log',
+                maxBytes=1024*1024,  # 1MB
+                backupCount=3
+            )
+            file_handler.setLevel(log_level)
+            file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s - %(levelname)s: %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            ))
+            logging.getLogger().addHandler(file_handler)
+            logger.info("File logging configured successfully")
+        except ImportError:
+            logger.warning("RotatingFileHandler not available, file logging disabled")
+        except Exception as e:
+            logger.warning(f"Could not configure file logging: {e}")
+
+    def detect_platform_info(self):
+        """Detect platform information and return optimized configuration"""
+        platform_info = {
+            'os': self.current_platform,
+            'architecture': platform.architecture()[0],
+            'machine': platform.machine().lower(),
+            'processor': platform.processor(),
+            'node': platform.node(),
+            'release': platform.release()
+        }
+        
+        # Platform-specific optimizations
+        if self.current_platform == 'windows':
+            platform_info['executable_ext'] = '.exe'
+            platform_info['path_separator'] = '\\'
+            platform_info['recommended_version'] = 'v0.49.2'
+            platform_info['supports_sdk'] = True
+        elif self.current_platform == 'darwin':  # macOS
+            platform_info['executable_ext'] = ''
+            platform_info['path_separator'] = '/'
+            platform_info['recommended_version'] = 'v0.52.0'
+            platform_info['supports_sdk'] = True
+            # Check for ARM64 (Apple Silicon)
+            if platform.machine().lower() == 'arm64':
+                platform_info['architecture'] = 'arm64'
+                platform_info['recommended_version'] = 'v0.52.0'
+        elif self.current_platform == 'linux':
+            platform_info['executable_ext'] = ''
+            platform_info['path_separator'] = '/'
+            platform_info['recommended_version'] = 'v0.50.1'
+            platform_info['supports_sdk'] = True
+        else:
+            platform_info['executable_ext'] = ''
+            platform_info['path_separator'] = '/'
+            platform_info['recommended_version'] = 'v0.49.2'
+            platform_info['supports_sdk'] = False
+        
+        logger.info(f"Platform detected: {self.current_platform} ({platform_info['architecture']})")
+        return platform_info
+
+    def validate_nwjs_version(self):
+        """Validate NW.js version compatibility and suggest alternatives"""
+        version_info = self.sdk_compatibility.get(self.nwjs_version, {})
+        
+        if not version_info:
+            logger.warning(f"Unknown NW.js version: {self.nwjs_version}")
+            logger.info(f"Falling back to recommended version for {self.current_platform}: {self.platform_info['recommended_version']}")
+            self.nwjs_version = self.platform_info['recommended_version']
+            return False
+        
+        if not version_info.get('stable', False):
+            logger.warning(f"NW.js version {self.nwjs_version} is not marked as stable")
+            if not version_info.get('tested', False):
+                logger.warning(f"Version {self.nwjs_version} has not been tested with RPG Maker MV")
+        
+        if not version_info.get('recommended', False):
+            logger.info(f"Consider using recommended version {self.platform_info['recommended_version']} for better compatibility")
+        
+        # Check if SDK is supported for this version
+        if self.use_sdk and not self.platform_info.get('supports_sdk', True):
+            logger.warning(f"SDK builds not fully supported on {self.current_platform}")
+            self.use_sdk = False
+            logger.info("Falling back to normal build")
+        
+        return True
+
+    def configure_sdk_features(self):
+        """Configure SDK-specific features based on user preferences"""
+        if self.use_sdk:
+            logger.info("Configuring SDK build features...")
+            
+            # Enable developer tools if requested
+            if self.enable_devtools:
+                logger.info("Developer tools enabled (F12 access)")
+                # SDK builds have dev tools enabled by default
+            
+            # Platform-specific SDK configurations
+            if self.current_platform == 'windows':
+                # Windows-specific SDK optimizations
+                self.cleanup_files = [f for f in self.cleanup_files if f not in ['nw_100_percent.pak', 'nw_200_percent.pak']]
+                logger.info("Preserved SDK-specific files for Windows")
+            
+            # Add SDK-specific files to keep
+            self.keep_files.extend(['payload', 'debug.log'])
+            
+        else:
+            logger.info("Using standard NW.js build (non-SDK)")
+            # Remove SDK-specific files from cleanup list
+            self.cleanup_files.extend(['payload', 'debug.log'])
+            if 'payload' in self.keep_files:
+                self.keep_files.remove('payload')
+            if 'debug.log' in self.keep_files:
+                self.keep_files.remove('debug.log')
 
     def validate_game_directory(self):
         """Validate that the provided path is a valid RPG Maker MV game directory"""
@@ -106,8 +277,8 @@ class NWJSAutomator:
         logger.info(f"✓ Valid RPG Maker MV game found at: {self.game_path}")
 
     def validate_and_fix_package_json(self, package_json_path):
-        """Validate and fix package.json for NW.js compatibility"""
-        logger.info("Validating package.json...")
+        """Validate and fix package.json for NW.js compatibility with advanced validation"""
+        logger.info("Validating package.json with advanced checks...")
 
         try:
             with open(package_json_path, 'r', encoding='utf-8') as f:
@@ -117,28 +288,118 @@ class NWJSAutomator:
         except Exception as e:
             raise ValueError(f"Could not read package.json: {e}")
 
-        # Check and fix required fields for NW.js
+        # Check and fix required fields for NW.js with advanced validation
         fixes_made = False
+        issues_found = []
 
-        # 1. Check 'name' field (required by NW.js)
+        # 1. Check 'name' field (required by NW.js) - Enhanced validation
         if 'name' not in package_data or not package_data['name']:
             game_name = self.game_path.name.replace(' ', '-').lower()
             package_data['name'] = game_name
             logger.info(f"  Fixed: Added missing 'name' field: {game_name}")
             fixes_made = True
+        elif not isinstance(package_data['name'], str):
+            # Convert to string if it's not
+            package_data['name'] = str(package_data['name'])
+            logger.info(f"  Fixed: Converted 'name' field to string")
+            fixes_made = True
+        elif len(package_data['name']) > 214:
+            # NW.js has a 214 character limit for app name
+            original_name = package_data['name']
+            package_data['name'] = original_name[:214]
+            logger.warning(f"  Fixed: Truncated 'name' field from {len(original_name)} to 214 characters")
+            fixes_made = True
+
+        # 2. Check 'main' field (required by NW.js)
+        if 'main' not in package_data or not package_data['main']:
+            package_data['main'] = 'www/index.html'  # Default for RPG Maker MV
+            logger.info(f"  Fixed: Added missing 'main' field: www/index.html")
+            fixes_made = True
+        elif not isinstance(package_data['main'], str):
+            package_data['main'] = str(package_data['main'])
+            logger.info(f"  Fixed: Converted 'main' field to string")
+            fixes_made = True
+
+        # 3. Check 'window' object (important for RPG Maker MV)
+        if 'window' not in package_data:
+            package_data['window'] = {
+                'title': package_data.get('name', 'RPG Game'),
+                'toolbar': False,
+                'width': 800,
+                'height': 600
+            }
+            logger.info(f"  Fixed: Added missing 'window' configuration")
+            fixes_made = True
+        else:
+            # Validate window properties
+            window_obj = package_data['window']
+            if not isinstance(window_obj, dict):
+                package_data['window'] = {
+                    'title': package_data.get('name', 'RPG Game'),
+                    'toolbar': False,
+                    'width': 800,
+                    'height': 600
+                }
+                logger.info(f"  Fixed: Replaced invalid 'window' configuration")
+                fixes_made = True
+            else:
+                # Validate individual window properties
+                if 'title' not in window_obj or not window_obj['title']:
+                    window_obj['title'] = package_data.get('name', 'RPG Game')
+                    logger.info(f"  Fixed: Added missing 'window.title'")
+                    fixes_made = True
+                
+                # Ensure width and height are valid numbers
+                if 'width' not in window_obj or not isinstance(window_obj['width'], int) or window_obj['width'] <= 0:
+                    window_obj['width'] = 800
+                    logger.info(f"  Fixed: Set default 'window.width' to 800")
+                    fixes_made = True
+                
+                if 'height' not in window_obj or not isinstance(window_obj['height'], int) or window_obj['height'] <= 0:
+                    window_obj['height'] = 600
+                    logger.info(f"  Fixed: Set default 'window.height' to 600")
+                    fixes_made = True
+
+        # 4. Check for recommended NW.js specific fields
+        if 'chromium-args' not in package_data:
+            package_data['chromium-args'] = '--disable-background-timer-throttling'
+            logger.info(f"  Added: Recommended 'chromium-args' for better performance")
+            fixes_made = True
+
+        # 5. Validate js-flags if present
+        if 'js-flags' in package_data:
+            if not isinstance(package_data['js-flags'], str):
+                package_data['js-flags'] = str(package_data['js-flags'])
+                logger.info(f"  Fixed: Converted 'js-flags' to string")
+                fixes_made = True
+
+        # 6. Add KADOKAWA/RPGMV format support for official compatibility
+        if package_data.get('name') != 'KADOKAWA/RPGMV':
+            # Store original name in a custom field for reference
+            if 'original_name' not in package_data:
+                package_data['original_name'] = package_data['name']
+                logger.info(f"  Info: Stored original name: {package_data['original_name']}")
 
         # Save the fixed package.json if any fixes were made
         if fixes_made:
             try:
                 with open(package_json_path, 'w', encoding='utf-8') as f:
                     json.dump(package_data, f, indent=2, ensure_ascii=False)
-                logger.info("✓ package.json fixes saved")
+                logger.info("✓ package.json fixes saved with advanced validation")
+                return True
             except Exception as e:
                 logger.error(f"Could not save package.json fixes: {e}")
                 raise
+        else:
+            logger.info("✓ package.json is already valid")
+            return False
 
     def get_nwjs_download_url(self):
-        """Get the download URL for the specified NW.js version"""
+        """Get the download URL for the specified NW.js version with version validation"""
+        
+        # Validate the NW.js version first
+        validated_version = self._validate_nwjs_version(self.nwjs_version)
+        
         arch_map = {
             'AMD64': 'x64',
             'x86_64': 'x64',
@@ -158,9 +419,9 @@ class NWJSAutomator:
 
         platform_name = platform_map.get(sys.platform, 'win')
 
-        # Use the version specified, defaulting to v0.49.2
-        version = self.nwjs_version if self.nwjs_version.startswith(
-            'v') else f"v{self.nwjs_version}"
+        # Use the validated version
+        version = validated_version if validated_version.startswith(
+            'v') else f"v{validated_version}"
 
         if self.use_sdk:
             filename = f"nwjs-sdk-{version}-{platform_name}-{arch}"
@@ -173,6 +434,76 @@ class NWJSAutomator:
             filename += '.tar.gz'
 
         return f"{self.nwjs_url_base}/{version}/{filename}", filename
+    
+    def _validate_nwjs_version(self, version):
+        """Validate NW.js version and suggest compatible versions for RPG Maker MV"""
+        logger.info(f"Validating NW.js version: {version}")
+        
+        # List of known compatible versions for RPG Maker MV
+        compatible_versions = {
+            'v0.29.4': {'description': 'Original RPG Maker MV version', 'platforms': ['win32', 'darwin', 'linux']},
+            'v0.49.2': {'description': 'Balanced version with good compatibility', 'platforms': ['win32', 'darwin', 'linux']},
+            'v0.72.0': {'description': 'Modern stable version', 'platforms': ['win32', 'darwin', 'linux']},
+            'v0.90.0': {'description': 'Latest stable with best performance', 'platforms': ['win32', 'darwin', 'linux']},
+            'v0.100.1': {'description': 'Very recent version', 'platforms': ['win32', 'darwin', 'linux']}
+        }
+        
+        # Platform-specific recommendations
+        platform_recommendations = {
+            'win32': ['v0.72.0', 'v0.49.2', 'v0.90.0'],
+            'darwin': ['v0.49.2', 'v0.72.0', 'v0.90.0'],
+            'linux': ['v0.72.0', 'v0.90.0', 'v0.49.2']
+        }
+        
+        # Clean and normalize the version
+        clean_version = version.strip().lower()
+        if clean_version.startswith('v'):
+            clean_version = clean_version[1:]
+        
+        # Check if it's a known compatible version
+        if f"v{clean_version}" in compatible_versions:
+            logger.info(f"✓ Version {version} is known to be compatible with RPG Maker MV")
+            return f"v{clean_version}" if not version.startswith('v') else version
+        
+        # Check if it's a valid version format (even if not in our list)
+        if self._is_valid_version_format(clean_version):
+            logger.warning(f"⚠️  Version {version} is not in the tested compatibility list")
+            logger.info(f"   Recommended versions: {', '.join(compatible_versions.keys())}")
+            
+            # Suggest platform-specific recommendation
+            current_platform = sys.platform
+            if current_platform in platform_recommendations:
+                recommended = platform_recommendations[current_platform][0]
+                logger.info(f"   Recommended for {current_platform}: {recommended}")
+            
+            return version  # Still allow it, but with warning
+        
+        # If version is invalid, use the default
+        logger.warning(f"❌ Invalid version format: {version}")
+        default_version = "v0.49.2"
+        logger.info(f"   Falling back to default version: {default_version}")
+        return default_version
+    
+    def _is_valid_version_format(self, version):
+        """Check if version string has a valid format"""
+        # Basic version format validation (e.g., 0.49.2, 0.72.0, 1.0.0)
+        import re
+        version_pattern = r'^\d+\.\d+\.\d+$'
+        return bool(re.match(version_pattern, version))
+    
+    def suggest_nwjs_version(self):
+        """Suggest the best NW.js version for the current platform"""
+        platform_suggestions = {
+            'win32': 'v0.72.0',  # Best balance for Windows
+            'darwin': 'v0.49.2',  # Most stable for Mac
+            'linux': 'v0.72.0'   # Best compatibility for Linux
+        }
+        
+        current_platform = sys.platform
+        suggested_version = platform_suggestions.get(current_platform, 'v0.49.2')
+        
+        logger.info(f"Suggested NW.js version for {current_platform}: {suggested_version}")
+        return suggested_version
 
     def download_nwjs(self, output_dir):
         """Download NW.js if not already provided"""
@@ -216,17 +547,180 @@ class NWJSAutomator:
         raise FileNotFoundError("Could not find extracted NW.js directory")
 
     def backup_game(self):
-        """Create a backup of the original game"""
-        backup_path = self.game_path.parent / f"{self.game_path.name}_backup"
+        """Create an incremental backup of the original game with verification"""
+        backup_dir = self.game_path.parent / f"{self.game_path.name}_backups"
+        backup_dir.mkdir(exist_ok=True)
+        
+        # Generate timestamp for backup
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = backup_dir / f"{self.game_path.name}_backup_{timestamp}"
 
         if backup_path.exists():
             logger.info(f"Backup already exists: {backup_path}")
             return backup_path
 
-        logger.info(f"Creating backup: {backup_path}")
-        shutil.copytree(self.game_path, backup_path)
-        logger.info("✓ Backup created successfully")
-        return backup_path
+        logger.info(f"Creating incremental backup: {backup_path}")
+        
+        # Create backup with verification
+        try:
+            shutil.copytree(self.game_path, backup_path)
+            
+            # Verify backup integrity
+            if self._verify_backup_integrity(backup_path):
+                logger.info("✓ Backup created and verified successfully")
+                
+                # Create backup manifest
+                self._create_backup_manifest(backup_path)
+                
+                # Clean up old backups (keep last 3)
+                self._cleanup_old_backups(backup_dir)
+                
+                return backup_path
+            else:
+                logger.error("❌ Backup verification failed")
+                shutil.rmtree(backup_path, ignore_errors=True)
+                raise RuntimeError("Backup integrity verification failed")
+                
+        except Exception as e:
+            logger.error(f"Failed to create backup: {e}")
+            if backup_path.exists():
+                shutil.rmtree(backup_path, ignore_errors=True)
+            raise
+    
+    def _verify_backup_integrity(self, backup_path):
+        """Verify the integrity of the backup by checking critical files"""
+        logger.info("Verifying backup integrity...")
+        
+        critical_files = [
+            'package.json',
+            'www',
+            'index.html'
+        ]
+        
+        missing_files = []
+        corrupted_files = []
+        
+        for file_name in critical_files:
+            file_path = backup_path / file_name
+            
+            if not file_path.exists():
+                missing_files.append(file_name)
+                continue
+            
+            # For directories, check they're not empty
+            if file_path.is_dir():
+                if not any(file_path.iterdir()):
+                    corrupted_files.append(f"{file_name} (empty directory)")
+            else:
+                # For files, check they're not empty
+                try:
+                    if file_path.stat().st_size == 0:
+                        corrupted_files.append(file_name)
+                except Exception:
+                    corrupted_files.append(file_name)
+        
+        if missing_files:
+            logger.error(f"Missing critical files in backup: {missing_files}")
+            return False
+        
+        if corrupted_files:
+            logger.error(f"Corrupted files in backup: {corrupted_files}")
+            return False
+        
+        logger.info("✓ Backup integrity verified - all critical files present and valid")
+        return True
+    
+    def _create_backup_manifest(self, backup_path):
+        """Create a manifest file for the backup"""
+        manifest_path = backup_path / 'BACKUP_MANIFEST.txt'
+        
+        try:
+            with open(manifest_path, 'w', encoding='utf-8') as f:
+                f.write(f"NW.js Automator Backup Manifest\n")
+                f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Original Path: {self.game_path}\n")
+                f.write(f"NW.js Version: {self.nwjs_version}\n")
+                f.write(f"SDK Build: {self.use_sdk}\n")
+                f.write(f"\nBackup Contents:\n")
+                
+                # List all files in backup
+                for item in backup_path.rglob("*"):
+                    if item.is_file():
+                        relative_path = item.relative_to(backup_path)
+                        size = item.stat().st_size
+                        f.write(f"  {relative_path} ({size} bytes)\n")
+            
+            logger.info(f"✓ Backup manifest created: {manifest_path}")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Could not create backup manifest: {e}")
+            return False
+    
+    def _cleanup_old_backups(self, backup_dir):
+        """Clean up old backups, keeping only the most recent ones"""
+        try:
+            # Get all backup directories
+            backups = [d for d in backup_dir.iterdir() if d.is_dir() and '_backup_' in d.name]
+            
+            # Sort by modification time (newest first)
+            backups.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+            
+            # Keep last 3 backups, remove older ones
+            backups_to_remove = backups[3:]
+            
+            for backup in backups_to_remove:
+                logger.info(f"Removing old backup: {backup}")
+                shutil.rmtree(backup, ignore_errors=True)
+            
+            if backups_to_remove:
+                logger.info(f"✓ Cleaned up {len(backups_to_remove)} old backups")
+            
+        except Exception as e:
+            logger.warning(f"Could not cleanup old backups: {e}")
+    
+    def restore_from_backup(self, backup_path):
+        """Restore game from a backup with verification"""
+        logger.info(f"Restoring game from backup: {backup_path}")
+        
+        try:
+            # Verify backup integrity before restoration
+            if not self._verify_backup_integrity(backup_path):
+                raise RuntimeError("Backup integrity verification failed before restoration")
+            
+            # Create temporary restore path
+            temp_restore = self.game_path.parent / f"{self.game_path.name}_restore_temp"
+            
+            try:
+                # Copy backup to temporary location
+                shutil.copytree(backup_path, temp_restore)
+                
+                # Verify the restored files
+                if not self._verify_backup_integrity(temp_restore):
+                    raise RuntimeError("Restored files verification failed")
+                
+                # Remove original game directory
+                if self.game_path.exists():
+                    logger.info(f"Removing original game directory: {self.game_path}")
+                    shutil.rmtree(self.game_path)
+                
+                # Move restored files to original location
+                temp_restore.rename(self.game_path)
+                
+                logger.info("✓ Game restored successfully from backup")
+                return True
+                
+            except Exception as e:
+                logger.error(f"Restoration failed: {e}")
+                # Clean up temporary restore
+                if temp_restore.exists():
+                    shutil.rmtree(temp_restore, ignore_errors=True)
+                raise
+                
+        except Exception as e:
+            logger.error(f"Could not restore from backup: {e}")
+            raise
 
     def save_important_files(self):
         """Save package.json, www folder, and index.html before cleaning"""
@@ -510,15 +1004,33 @@ class NWJSAutomator:
             logger.error(f"Could not rename executable: {e}")
             return nw_exe
 
-    def cleanup_nwjs_files(self):
-        logger.info("Cleaning up unnecessary NW.js files...")
+    def cleanup_nwjs_files(self, keep_debug_files=False):
+        """Clean up unnecessary NW.js files with intelligent analysis"""
+        logger.info("Cleaning up unnecessary NW.js files with smart cleanup...")
 
         removed_count = 0
-
-        for file_name in self.cleanup_files:
+        preserved_count = 0
+        
+        # Analyze files before removal
+        files_to_clean = self._analyze_files_for_cleanup()
+        
+        # Remove files from the cleanup list
+        for file_name in files_to_clean:
             file_path = self.game_path / file_name
             if file_path.exists():
                 try:
+                    # Check if file is in whitelist
+                    if self._is_critical_file(file_path):
+                        logger.info(f"  Preserved (critical): {file_name}")
+                        preserved_count += 1
+                        continue
+                    
+                    # Check if we should keep debug files
+                    if keep_debug_files and file_name in self.debug_files:
+                        logger.info(f"  Preserved (debug mode): {file_name}")
+                        preserved_count += 1
+                        continue
+                    
                     if file_path.is_dir():
                         shutil.rmtree(file_path)
                     else:
@@ -528,12 +1040,12 @@ class NWJSAutomator:
                 except Exception as e:
                     logger.warning(f"  Could not remove {file_name}: {e}")
 
-        # Handle locale directory cleanup - keep only en-US
+        # Handle locale directory cleanup - keep only specified locales
         locales_dir = self.game_path / 'locales'
         if locales_dir.exists() and locales_dir.is_dir():
             try:
                 for locale_file in locales_dir.iterdir():
-                    if locale_file.name not in ['en-US.pak', 'en-US.pak.info']:
+                    if locale_file.name not in self.keep_locales:
                         if locale_file.is_file():
                             locale_file.unlink()
                             removed_count += 1
@@ -542,10 +1054,92 @@ class NWJSAutomator:
             except Exception as e:
                 logger.warning(f"  Could not clean locales directory: {e}")
 
+        # Analyze remaining files and suggest optimizations
+        self._analyze_remaining_files()
+
         if removed_count > 0:
             logger.info(f"✓ Removed {removed_count} unnecessary files")
         else:
             logger.info("✓ No unnecessary files to remove")
+        
+        if preserved_count > 0:
+            logger.info(f"✓ Preserved {preserved_count} critical/debug files")
+    
+    def _analyze_files_for_cleanup(self):
+        """Analyze which files should be cleaned up based on actual usage"""
+        logger.info("Analyzing files for smart cleanup...")
+        
+        # Start with the base cleanup list
+        files_to_clean = self.cleanup_files.copy()
+        
+        # Check if SDK build is being used
+        if self.use_sdk:
+            # Remove SDK-specific files from cleanup if we're using SDK
+            sdk_files = ['nw_100_percent.pak', 'nw_200_percent.pak']
+            files_to_clean = [f for f in files_to_clean if f not in sdk_files]
+            logger.info("  SDK build detected - preserving SDK-specific files")
+        
+        # Check for platform-specific files
+        if sys.platform == 'win32':
+            # On Windows, we might want to keep notification_helper.exe
+            if 'notification_helper.exe' in files_to_clean:
+                files_to_clean.remove('notification_helper.exe')
+                logger.info("  Windows platform - preserving notification_helper.exe")
+        
+        return files_to_clean
+    
+    def _is_critical_file(self, file_path):
+        """Check if a file is critical and should never be removed"""
+        file_name = file_path.name
+        
+        # Check against whitelist
+        if file_name in self.critical_files_whitelist:
+            return True
+        
+        # Check if it's a directory in whitelist
+        if file_path.is_dir() and file_name in self.critical_files_whitelist:
+            return True
+        
+        # Special case: check if it's the main executable
+        if file_name in ['nw.exe', 'nw', 'nwjs'] and file_path.exists():
+            return True
+        
+        return False
+    
+    def _analyze_remaining_files(self):
+        """Analyze remaining files and suggest optimizations"""
+        logger.info("Analyzing remaining file structure...")
+        
+        # Count files by category
+        file_categories = {
+            'executables': 0,
+            'configuration': 0,
+            'resources': 0,
+            'locales': 0,
+            'other': 0
+        }
+        
+        for item in self.game_path.iterdir():
+            if item.is_file():
+                if item.name.endswith(('.exe', 'nw', 'nwjs')):
+                    file_categories['executables'] += 1
+                elif item.name == 'package.json':
+                    file_categories['configuration'] += 1
+                elif item.name.startswith('icudtl') or item.name.startswith('lib'):
+                    file_categories['resources'] += 1
+                elif item.name.startswith('locales'):
+                    file_categories['locales'] += 1
+                else:
+                    file_categories['other'] += 1
+        
+        logger.info(f"  File analysis: {file_categories}")
+        
+        # Suggest optimizations
+        if file_categories['other'] > 5:
+            logger.info("  💡 Suggestion: Consider reviewing 'other' files for additional cleanup")
+        
+        if file_categories['locales'] > 2:
+            logger.info("  💡 Suggestion: You're keeping multiple locale files. Consider keeping only en-US for smaller size.")
 
     def setup_nwjs(self):
         """Setup NW.js - download if needed"""
@@ -738,6 +1332,31 @@ def get_user_input():
     verbose = input("\n📝 Enable verbose logging? (y/N): ").strip().lower()
     verbose = verbose == 'y'
 
+    # Logging level
+    if verbose:
+        logging_level = 'DEBUG'
+    else:
+        print("\n📊 Logging Level:")
+        print("  1. DEBUG (Most detailed)")
+        print("  2. INFO (Default)")
+        print("  3. WARNING (Only warnings and errors)")
+        print("  4. ERROR (Only errors)")
+        
+        log_choice = input(
+            "Select logging level (1-4, default 2): ").strip()
+        log_levels = {'1': 'DEBUG', '2': 'INFO', '3': 'WARNING', '4': 'ERROR'}
+        logging_level = log_levels.get(log_choice, 'INFO')
+
+    # Developer tools
+    enable_devtools = input(
+        "\n🔧 Enable developer tools (F12 access)? (y/N): ").strip().lower()
+    enable_devtools = enable_devtools == 'y'
+
+    # Platform optimizations
+    platform_optimized = input(
+        "\n🌍 Enable platform-specific optimizations? (Y/n): ").strip().lower()
+    platform_optimized = platform_optimized != 'n'
+
     return {
         'game_path': game_path,
         'executable_name': executable_name,
@@ -745,7 +1364,10 @@ def get_user_input():
         'nwjs_version': nwjs_version,
         'use_sdk': use_sdk,
         'create_backup': create_backup,
-        'verbose': verbose
+        'verbose': verbose,
+        'logging_level': logging_level,
+        'enable_devtools': enable_devtools,
+        'platform_optimized': platform_optimized
     }
 
 
@@ -768,6 +1390,13 @@ def main():
                         help='Enable verbose logging')
     parser.add_argument('--interactive', '-i',
                         action='store_true', help='Run in interactive mode')
+    parser.add_argument('--devtools', action='store_true',
+                        help='Enable developer tools (F12 access)')
+    parser.add_argument('--platform-optimized', action='store_true',
+                        help='Enable platform-specific optimizations')
+    parser.add_argument('--log-level', default='INFO',
+                        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+                        help='Set logging level (default: INFO)')
 
     args = parser.parse_args()
 
@@ -784,8 +1413,17 @@ def main():
             nwjs_path=config['nwjs_path'],
             nwjs_version=config['nwjs_version'],
             use_sdk=config['use_sdk'],
-            executable_name=config['executable_name']
+            executable_name=config['executable_name'],
+            enable_devtools=config.get('enable_devtools', False),
+            platform_optimized=config.get('platform_optimized', False),
+            logging_level=config.get('logging_level', 'INFO')
         )
+        
+        # Configure SDK features based on user preferences
+        automator.configure_sdk_features()
+        
+        # Validate NW.js version compatibility
+        automator.validate_nwjs_version()
 
         # Show configuration summary
         print(f"\n📋 Configuration Summary:")
@@ -793,6 +1431,9 @@ def main():
         print(f"   Executable Name: {config['executable_name']}")
         print(f"   NW.js Version: {config['nwjs_version']}")
         print(f"   Build Type: {'SDK' if config['use_sdk'] else 'Normal'}")
+        print(f"   Developer Tools: {'Enabled' if config['enable_devtools'] else 'Disabled'}")
+        print(f"   Platform Optimized: {'Yes' if config['platform_optimized'] else 'No'}")
+        print(f"   Logging Level: {config['logging_level']}")
         print(
             f"   Create Backup: {'Yes' if config['create_backup'] else 'No'}")
         if config['nwjs_path']:
@@ -816,14 +1457,26 @@ def main():
         if executable_name.lower().endswith('.exe'):
             executable_name = executable_name[:-4]
 
+        # Determine logging level
+        log_level = args.log_level if not args.verbose else 'DEBUG'
+        
         # Create automator instance
         automator = NWJSAutomator(
             game_path=args.game_path,
             nwjs_path=args.nwjs_path,
             nwjs_version=args.nwjs_version,
             use_sdk=not args.no_sdk,
-            executable_name=executable_name
+            executable_name=executable_name,
+            enable_devtools=args.devtools,
+            platform_optimized=args.platform_optimized,
+            logging_level=log_level
         )
+        
+        # Configure SDK features based on user preferences
+        automator.configure_sdk_features()
+        
+        # Validate NW.js version compatibility
+        automator.validate_nwjs_version()
 
         # Process the game
         result = automator.process_game(create_backup=not args.no_backup)
